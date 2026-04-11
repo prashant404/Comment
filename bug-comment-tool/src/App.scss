@@ -1,0 +1,505 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+// ==========================================
+// 🎨 THEME VARIABLES (GLASS NAVY)
+// ==========================================
+$bg-main:          #0F1923;                      // Deep navy base
+$bg-layer:         #151F2E;                      // Slightly lifted layer
+$glass-bg:         rgba(255, 255, 255, 0.04);    // Frosted glass fill
+$glass-bg-hover:   rgba(255, 255, 255, 0.07);    // On hover lift
+$glass-border:     rgba(255, 255, 255, 0.08);    // Subtle border
+$glass-border-em:  rgba(255, 255, 255, 0.14);    // Emphasized border
+$text-main:        #E8EDF2;                      // Off-white, not harsh
+$text-muted:       #7A8FA6;                      // Readable gray-blue
+$text-dim:         #4A5A6B;                      // Placeholder / labels
+$accent:           #4F9EE8;                      // Professional blue
+$accent-glow:      rgba(79, 158, 232, 0.15);     // Focus ring / glow
+$accent-hover:     #6AAFEF;
+$success:          #2DD4A0;                      // Teal-green
+$success-bg:       rgba(45, 212, 160, 0.10);
+$danger:           #F05252;
+$amber:            #F59E0B;
+$radius:           14px;
+$radius-sm:        8px;
+
+// ==========================================
+// 🛠️ BASE
+// ==========================================
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", -apple-system, sans-serif;
+  background-color: $bg-main;
+  color: $text-main;
+  height: 100vh;
+  overflow: hidden;
+}
+
+// ==========================================
+// 📐 LAYOUT
+// ==========================================
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.top-bar {
+  padding: 14px 28px;
+  background: $glass-bg;
+  border-bottom: 1px solid $glass-border;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  h1 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: $accent;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  padding: 24px;
+  gap: 20px;
+}
+
+.left-panel {
+  flex: 1.2;
+  overflow-y: auto;
+  padding-right: 8px;
+  padding-bottom: 60px;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: $glass-border-em; border-radius: 10px; }
+  &::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+}
+
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+// ==========================================
+// 🃏 CARDS
+// ==========================================
+.card {
+  background: $glass-bg;
+  border: 1px solid $glass-border;
+  border-radius: $radius;
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: $glass-border-em;
+  }
+
+  h2 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: $text-main;
+  }
+
+  h3 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $text-dim;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+}
+
+.highlight-card {
+  background: $glass-bg-hover;
+  border: 1px solid $glass-border-em;
+}
+
+// Accent top border (replaces heavy border-blue)
+.border-accent {
+  border-top: 2px solid $accent;
+}
+
+.sample-block {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid $glass-border;
+  border-radius: $radius-sm;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .sample-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    strong {
+      font-size: 0.88rem;
+      color: $text-main;
+    }
+  }
+}
+
+.divider-line {
+  height: 1px;
+  background: $glass-border;
+  margin: 6px 0;
+}
+
+// ==========================================
+// 🏷️ BADGES
+// ==========================================
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  &.badge-blue {
+    background: rgba($accent, 0.12);
+    color: $accent;
+    border: 1px solid rgba($accent, 0.25);
+  }
+
+  &.badge-green {
+    background: $success-bg;
+    color: $success;
+    border: 1px solid rgba($success, 0.25);
+  }
+
+  &.badge-amber {
+    background: rgba($amber, 0.1);
+    color: $amber;
+    border: 1px solid rgba($amber, 0.25);
+  }
+
+  &.badge-danger {
+    background: rgba($danger, 0.1);
+    color: $danger;
+    border: 1px solid rgba($danger, 0.25);
+  }
+}
+
+// ==========================================
+// 📝 FORMS
+// ==========================================
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: $text-muted;
+  }
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 9px 13px;
+  border-radius: $radius-sm;
+  border: 1px solid $glass-border;
+  background: rgba(255, 255, 255, 0.04);
+  color: $text-main;
+  font-family: inherit;
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &::placeholder {
+    color: $text-dim;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+    box-shadow: 0 0 0 3px $accent-glow;
+  }
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+// ==========================================
+// 🔘 BUTTONS
+// ==========================================
+.button-group-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 9px 16px;
+  border-radius: $radius-sm;
+  border: none;
+  cursor: pointer;
+  background: $accent;
+  color: white;
+  font-weight: 600;
+  font-size: 0.88rem;
+  font-family: inherit;
+  transition: all 0.18s ease;
+
+  &:hover:not(:disabled) {
+    background: $accent-hover;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  // Ghost / outline
+  &.secondary {
+    background: transparent;
+    color: $text-muted;
+    border: 1px solid $glass-border-em;
+
+    &:hover {
+      color: $text-main;
+      border-color: rgba(255, 255, 255, 0.22);
+      background: $glass-bg-hover;
+      transform: none;
+    }
+  }
+
+  // Active state (toggled on)
+  &.active {
+    background: $accent;
+    box-shadow: 0 0 0 2px $accent-glow;
+  }
+
+  // Warning active
+  &.active-warning {
+    background: rgba($amber, 0.15);
+    color: $amber;
+    border: 1px solid rgba($amber, 0.3);
+
+    &:hover { background: rgba($amber, 0.22); }
+  }
+
+  // Dashed outline / add new
+  &.outline-btn {
+    background: transparent;
+    border: 1px dashed $text-dim;
+    color: $text-dim;
+
+    &:hover {
+      border-color: $accent;
+      color: $accent;
+      transform: none;
+    }
+  }
+
+  // Inline danger link
+  &.danger-text {
+    background: transparent;
+    color: $danger;
+    padding: 0;
+    font-size: 0.78rem;
+    border: none;
+
+    &:hover {
+      text-decoration: underline;
+      transform: none;
+    }
+  }
+}
+
+// ==========================================
+// 📻 RADIO BUTTONS
+// ==========================================
+.radio-group {
+  display: flex;
+  gap: 10px;
+}
+
+.radio-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 9px 13px;
+  border-radius: $radius-sm;
+  border: 1px solid $glass-border;
+  background: $glass-bg;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: $text-muted;
+  transition: all 0.18s ease;
+
+  &:hover {
+    background: $glass-bg-hover;
+    border-color: $glass-border-em;
+  }
+
+  &.selected {
+    border-color: $accent;
+    background: $accent-glow;
+    color: $accent;
+  }
+
+  input[type="radio"] {
+    accent-color: $accent;
+  }
+}
+
+// ==========================================
+// 📄 OUTPUT & ACTIONS
+// ==========================================
+.sticky-output {
+  height: 100%;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  .primary-action {
+    flex: 2;
+    background: $success-bg;
+    color: $success;
+    border: 1px solid rgba($success, 0.3);
+
+    &:hover:not(:disabled) {
+      background: rgba($success, 0.18);
+      transform: none;
+    }
+  }
+
+  .copy-action {
+    flex: 1;
+    background: transparent;
+    border: 1px solid $glass-border-em;
+    color: $text-muted;
+
+    &:hover {
+      color: $text-main;
+      background: $glass-bg-hover;
+    }
+  }
+}
+
+.output-container {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: $radius-sm;
+  border: 1px solid $glass-border;
+  overflow-y: auto;
+}
+
+.output {
+  padding: 18px;
+  white-space: pre-wrap;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: $text-main;
+}
+
+// ==========================================
+// 🔢 METRIC CARDS
+// ==========================================
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.metric-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid $glass-border;
+  border-radius: $radius-sm;
+  padding: 14px 16px;
+
+  .metric-val {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $text-main;
+  }
+
+  .metric-lbl {
+    font-size: 0.72rem;
+    color: $text-muted;
+    margin-top: 3px;
+  }
+}
+
+// ==========================================
+// 🍞 TOAST
+// ==========================================
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: $success-bg;
+  color: $success;
+  border: 1px solid rgba($success, 0.3);
+  padding: 12px 20px;
+  border-radius: $radius-sm;
+  font-weight: 600;
+  font-size: 0.88rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.25s ease-out;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: $success;
+    flex-shrink: 0;
+  }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ==========================================
+// 📱 RESPONSIVE
+// ==========================================
+@media (max-width: 900px) {
+  .main-layout { flex-direction: column; overflow-y: auto; }
+  .left-panel { overflow-y: visible; padding-right: 0; }
+  body { overflow: auto; }
+}
