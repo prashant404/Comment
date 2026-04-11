@@ -1,20 +1,20 @@
 import { useState, useEffect } from "react";
 import OutputBox from "./components/OutputBox";
 import { generateComment } from "./utils/generateComment";
-import type { FormDataType, SampleType, ORIssueType } from "./types/index";
+import type { FormDataType } from "./types/index";
 
 export default function App() {
   const [toast, setToast] = useState("");
   const [output, setOutput] = useState("");
 
- const [formData, setFormData] = useState<FormDataType>({
+  const [formData, setFormData] = useState<FormDataType>({
     name: localStorage.getItem("buganizer_ldap") || "", 
     attribute: "", gearloose: "", activeScenarios: [],
     overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", userAgents: "",
     orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
-    clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }], isTrustedCL: "yes",
+    clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }],
     historyReasonSS: "", historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
-    coverageStatus: "", coverageImproved: "waiting", coverageSS: "", coverageDashboardSS: ""
+    coverageImproved: "waiting", coverageSS: ""
   });
 
   useEffect(() => {
@@ -44,7 +44,6 @@ export default function App() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Helper functions for dynamic arrays
   const addArrayItem = (field: "orIssues" | "clSamples" | "historySamples", defaultObj: any) => {
     setFormData((p: any) => ({ ...p, [field]: [...p[field], defaultObj] }));
   };
@@ -88,163 +87,177 @@ export default function App() {
   return (
     <div className="app-wrapper">
       <div className="top-bar">
-        <h1>⚡</h1>
+        <h1>⚡ Buganizer Tool</h1>
       </div>
 
       <div className="main-layout">
         <div className="left-panel">
           
-          {/* GLOBAL BLOCK */}
           <div className="card border-blue">
-            <h2>🌍 Global Details</h2>
-            <input placeholder="Your Name / LDAP *" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
-            <input placeholder="Attribute (price/availability) *" value={formData.attribute} onChange={(e) => handleChange("attribute", e.target.value)} />
-            {/* Dynamic Placeholder for Gearloose */}
-            <input 
-              placeholder={formData.overruleType === "dt" ? "Main Gearloose Link (Screenshot SS) *" : "Main Gearloose Link *"} 
-              value={formData.gearloose} 
-              onChange={(e) => handleChange("gearloose", e.target.value)} 
-            />
+            <h2>Global Details</h2>
+            <div className="input-group">
+              <label>Your Name / LDAP *</label>
+              <input placeholder="e.g. prashant" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
+            </div>
+            <div className="input-group">
+              <label>Attribute *</label>
+              <input placeholder="price / availability" value={formData.attribute} onChange={(e) => handleChange("attribute", e.target.value)} />
+            </div>
+            <div className="input-group">
+              <label>{formData.overruleType === "dt" ? "Main Gearloose Link (SS) *" : "Main Gearloose Link *"}</label>
+              <input placeholder="https://..." value={formData.gearloose} onChange={(e) => handleChange("gearloose", e.target.value)} />
+            </div>
           </div>
 
-          {/* SCENARIO TOGGLES */}
           <div className="card">
-            <h2>🧩 Select Scenarios to Stack</h2>
+            <h2>Select Scenarios</h2>
             <div className="button-group-row">
               <button className={formData.activeScenarios.includes("overrule") ? "active" : "secondary"} onClick={() => handleToggleScenario("overrule")}>+ Overrule</button>
               <button className={formData.activeScenarios.includes("history") ? "active" : "secondary"} onClick={() => handleToggleScenario("history")}>+ History Mismatch</button>
               <button className={formData.activeScenarios.includes("cl") ? "active" : "secondary"} onClick={() => handleToggleScenario("cl")}>+ CL Creation</button>
             </div>
-            <div style={{ marginTop: '10px', borderTop: '1px solid #2a2f4c', paddingTop: '10px' }}>
-              <button className={formData.activeScenarios.includes("coverage") ? "active-warning" : "secondary"} onClick={() => handleToggleScenario("coverage")}>
-                Stand-alone: Waiting for Coverage
-              </button>
-            </div>
+            <div className="divider-line"></div>
+            <button className={formData.activeScenarios.includes("coverage") ? "active-warning" : "secondary"} onClick={() => handleToggleScenario("coverage")}>
+              Stand-alone: Waiting for Coverage
+            </button>
           </div>
 
-          {/* BLOCK A: OVERRULE */}
           {formData.activeScenarios.includes("overrule") && (
-            <div className="card">
+            <div className="card highlight-card">
               <h2>Block A: Overruling</h2>
-              <div className="radio-group" style={{ marginBottom: "15px" }}>
-                <label className="radio-label"><input type="radio" checked={formData.overruleType === "dt"} onChange={() => handleChange("overruleType", "dt")} /> DT Comment</label>
-                <label className="radio-label"><input type="radio" checked={formData.overruleType === "or"} onChange={() => handleChange("overruleType", "or")} /> OR Comment</label>
+              <div className="radio-group" style={{ marginBottom: "16px" }}>
+                <label className={`radio-label ${formData.overruleType === "dt" ? "selected" : ""}`}>
+                  <input type="radio" checked={formData.overruleType === "dt"} onChange={() => handleChange("overruleType", "dt")} /> DT Comment
+                </label>
+                <label className={`radio-label ${formData.overruleType === "or" ? "selected" : ""}`}>
+                  <input type="radio" checked={formData.overruleType === "or"} onChange={() => handleChange("overruleType", "or")} /> OR Comment
+                </label>
               </div>
               
-              <input placeholder="Mismatches SS Link *" value={formData.mismatchSS} onChange={(e) => handleChange("mismatchSS", e.target.value)} />
+              <div className="input-group">
+                <label>Mismatches SS Link *</label>
+                <input placeholder="https://..." value={formData.mismatchSS} onChange={(e) => handleChange("mismatchSS", e.target.value)} />
+              </div>
               
               {formData.overruleType === "dt" && (
-                <input placeholder="OR Bug Link *" value={formData.bugLink} onChange={(e) => handleChange("bugLink", e.target.value)} />
+                <div className="input-group">
+                  <label>OR Bug Link *</label>
+                  <input placeholder="https://..." value={formData.bugLink} onChange={(e) => handleChange("bugLink", e.target.value)} />
+                </div>
               )}
 
               {formData.overruleType === "or" && (
                 <>
-                  <input placeholder="Extractor Link *" value={formData.extractor} onChange={(e) => handleChange("extractor", e.target.value)} />
-                  <input placeholder="Dashboard SS Link *" value={formData.dashboardSS} onChange={(e) => handleChange("dashboardSS", e.target.value)} />
-                  <input placeholder="User Agents (all / specific) *" value={formData.userAgents} onChange={(e) => handleChange("userAgents", e.target.value)} />
+                  <div className="input-group">
+                    <label>Extractor Link *</label>
+                    <input placeholder="https://..." value={formData.extractor} onChange={(e) => handleChange("extractor", e.target.value)} />
+                  </div>
+                  <div className="input-group">
+                    <label>Dashboard SS Link *</label>
+                    <input placeholder="https://..." value={formData.dashboardSS} onChange={(e) => handleChange("dashboardSS", e.target.value)} />
+                  </div>
+                  <div className="input-group">
+                    <label>User Agents *</label>
+                    <input placeholder="all / specific" value={formData.userAgents} onChange={(e) => handleChange("userAgents", e.target.value)} />
+                  </div>
                   
-                  {/* DYNAMIC OR ISSUES */}
-                  <label>Issues</label>
+                  <div className="divider-line"></div>
+                  <h3>Issues</h3>
                   {formData.orIssues.map((issue, i) => (
                     <div key={i} className="sample-block">
-                      <strong>Issue {i + 1}</strong>
+                      <div className="sample-header">
+                        <strong>Issue {i + 1}</strong>
+                        {formData.orIssues.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("orIssues", i)}>Remove</button>}
+                      </div>
                       <textarea placeholder="Issue Description *" value={issue.description} onChange={(e) => updateArrayItem("orIssues", i, "description", e.target.value)} />
                       <input placeholder="Rating" value={issue.rating} onChange={(e) => updateArrayItem("orIssues", i, "rating", e.target.value)} />
                       <input placeholder="Inspector" value={issue.inspector} onChange={(e) => updateArrayItem("orIssues", i, "inspector", e.target.value)} />
                       <input placeholder="Reference LP (optional)" value={issue.referenceLP} onChange={(e) => updateArrayItem("orIssues", i, "referenceLP", e.target.value)} />
-                      {formData.orIssues.length > 1 && (
-                        <button className="danger" onClick={() => removeArrayItem("orIssues", i)}>Remove Issue</button>
-                      )}
                     </div>
                   ))}
-                  <button className="secondary" onClick={() => addArrayItem("orIssues", { description: "", rating: "", inspector: "", referenceLP: "" })}>+ Add Another Issue</button>
+                  <button className="secondary outline-btn" onClick={() => addArrayItem("orIssues", { description: "", rating: "", inspector: "", referenceLP: "" })}>+ Add Issue</button>
                 </>
               )}
             </div>
           )}
 
-          {/* BLOCK B: HISTORY */}
           {formData.activeScenarios.includes("history") && (
-            <div className="card">
+            <div className="card highlight-card">
               <h2>Block B: History Mismatches</h2>
-              <input placeholder="Reason SS Link *" value={formData.historyReasonSS} onChange={(e) => handleChange("historyReasonSS", e.target.value)} />
-              <input placeholder="AIU Opted SS Link *" value={formData.historyAIUOptedSS} onChange={(e) => handleChange("historyAIUOptedSS", e.target.value)} />
+              <div className="input-group">
+                <label>Reason SS Link *</label>
+                <input placeholder="https://..." value={formData.historyReasonSS} onChange={(e) => handleChange("historyReasonSS", e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>AIU Opted SS Link *</label>
+                <input placeholder="https://..." value={formData.historyAIUOptedSS} onChange={(e) => handleChange("historyAIUOptedSS", e.target.value)} />
+              </div>
               
-              <label>History Samples</label>
+              <div className="divider-line"></div>
+              <h3>History Samples</h3>
               {formData.historySamples.map((sample, i) => (
                 <div key={i} className="sample-block">
-                  <strong>History Sample {i + 1}</strong>
+                  <div className="sample-header">
+                    <strong>Sample {i + 1}</strong>
+                    {formData.historySamples.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("historySamples", i)}>Remove</button>}
+                  </div>
                   <input placeholder="CDS Link" value={sample.cds} onChange={(e) => updateArrayItem("historySamples", i, "cds", e.target.value)} />
                   <input placeholder="LP Link" value={sample.lp} onChange={(e) => updateArrayItem("historySamples", i, "lp", e.target.value)} />
                   <input placeholder="Debug Link" value={sample.debug} onChange={(e) => updateArrayItem("historySamples", i, "debug", e.target.value)} />
-                  {formData.historySamples.length > 1 && (
-                    <button className="danger" onClick={() => removeArrayItem("historySamples", i)}>Remove Sample</button>
-                  )}
                 </div>
               ))}
-              <button className="secondary" onClick={() => addArrayItem("historySamples", { cds: "", lp: "", debug: "" })}>+ Add Another Sample</button>
+              <button className="secondary outline-btn" onClick={() => addArrayItem("historySamples", { cds: "", lp: "", debug: "" })}>+ Add Sample</button>
             </div>
           )}
 
-          {/* BLOCK C: CL CREATION */}
           {formData.activeScenarios.includes("cl") && (
-            <div className="card">
+            <div className="card highlight-card">
               <h2>Block C: CL Creation</h2>
-              <div className="radio-group" style={{ marginBottom: "15px" }}>
-                <label className="radio-label"><input type="radio" checked={formData.isTrustedCL === "yes"} onChange={() => handleChange("isTrustedCL", "yes")} /> Script is Trusted</label>
-                <label className="radio-label"><input type="radio" checked={formData.isTrustedCL === "no"} onChange={() => handleChange("isTrustedCL", "no")} /> Script NOT Trusted</label>
-              </div>
-              
-              <label>CL Samples</label>
+              <div className="divider-line"></div>
+              <h3>CL Samples</h3>
               {formData.clSamples.map((sample, i) => (
                 <div key={i} className="sample-block">
-                  <strong>CL Sample {i + 1}</strong>
+                  <div className="sample-header">
+                    <strong>Sample {i + 1}</strong>
+                    {formData.clSamples.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("clSamples", i)}>Remove</button>}
+                  </div>
                   <input placeholder="CDS Link *" value={sample.cds} onChange={(e) => updateArrayItem("clSamples", i, "cds", e.target.value)} />
                   <input placeholder="LP Link *" value={sample.lp} onChange={(e) => updateArrayItem("clSamples", i, "lp", e.target.value)} />
                   <input placeholder="Debug Link *" value={sample.debug} onChange={(e) => updateArrayItem("clSamples", i, "debug", e.target.value)} />
                   <input placeholder="Rating (optional)" value={sample.rating} onChange={(e) => updateArrayItem("clSamples", i, "rating", e.target.value)} />
                   <input placeholder="Inspector (optional)" value={sample.inspector} onChange={(e) => updateArrayItem("clSamples", i, "inspector", e.target.value)} />
-                  {formData.clSamples.length > 1 && (
-                    <button className="danger" onClick={() => removeArrayItem("clSamples", i)}>Remove Sample</button>
-                  )}
                 </div>
               ))}
-              <button className="secondary" onClick={() => addArrayItem("clSamples", { cds: "", lp: "", debug: "", rating: "", inspector: "" })}>+ Add Another Sample</button>
+              <button className="secondary outline-btn" onClick={() => addArrayItem("clSamples", { cds: "", lp: "", debug: "", rating: "", inspector: "" })}>+ Add Sample</button>
             </div>
           )}
 
-          {/* BLOCK D: COVERAGE */}
           {formData.activeScenarios.includes("coverage") && (
-            <div className="card">
+            <div className="card highlight-card">
               <h2>Stand-alone: Waiting for Coverage</h2>
-              <div className="radio-group" style={{ marginBottom: "15px" }}>
-                <label className="radio-label"><input type="radio" checked={formData.coverageStatus === "trusted"} onChange={() => handleChange("coverageStatus", "trusted")} /> Trusted</label>
-                <label className="radio-label"><input type="radio" checked={formData.coverageStatus === "not_trusted"} onChange={() => handleChange("coverageStatus", "not_trusted")} /> Not Trusted</label>
+              <div className="input-group">
+                <label>Current Coverage SS *</label>
+                <input placeholder="https://..." value={formData.coverageSS} onChange={(e) => handleChange("coverageSS", e.target.value)} />
               </div>
               
-              <input placeholder="Current Coverage Screenshot (SS) *" value={formData.coverageSS} onChange={(e) => handleChange("coverageSS", e.target.value)} />
-              
-              {formData.coverageStatus === "trusted" && (
-                <div className="radio-group">
-                  <label className="radio-label"><input type="radio" checked={formData.coverageImproved === "improved"} onChange={() => handleChange("coverageImproved", "improved")} /> Coverage Improved</label>
-                  <label className="radio-label"><input type="radio" checked={formData.coverageImproved === "waiting"} onChange={() => handleChange("coverageImproved", "waiting")} /> Waiting to reflect</label>
-                </div>
-              )}
-
-              {formData.coverageStatus === "not_trusted" && (
-                <input placeholder="Dashboard SS *" value={formData.coverageDashboardSS} onChange={(e) => handleChange("coverageDashboardSS", e.target.value)} />
-              )}
+              <div className="radio-group" style={{ marginTop: "12px" }}>
+                <label className={`radio-label ${formData.coverageImproved === "improved" ? "selected" : ""}`}>
+                  <input type="radio" checked={formData.coverageImproved === "improved"} onChange={() => handleChange("coverageImproved", "improved")} /> Coverage Improved
+                </label>
+                <label className={`radio-label ${formData.coverageImproved === "waiting" ? "selected" : ""}`}>
+                  <input type="radio" checked={formData.coverageImproved === "waiting"} onChange={() => handleChange("coverageImproved", "waiting")} /> Waiting to reflect
+                </label>
+              </div>
             </div>
           )}
 
         </div>
 
-        {/* RIGHT PANEL: Output */}
         <div className="right-panel">
           <div className="card sticky-output">
-            <h2>Generated Output</h2>
+            <h2>Generated Document</h2>
             <div className="actions">
-              <button className="primary-action" onClick={handleGenerate}>⚙️ Generate Comment</button>
+              <button className="primary-action" onClick={handleGenerate}>⚙️ Generate</button>
               <button className="copy-action" onClick={() => { navigator.clipboard.writeText(output); showToast("📋 Copied!"); }} disabled={!output}>📋 Copy</button>
             </div>
             <OutputBox output={output} />

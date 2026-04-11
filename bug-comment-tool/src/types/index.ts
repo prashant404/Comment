@@ -33,7 +33,6 @@ export interface FormDataType {
 
   // Block B: CL Creation
   clSamples: SampleType[];
-  isTrustedCL: string; // "yes" or "no"
 
   // Block C: History Mismatches
   historyReasonSS: string;
@@ -41,8 +40,6 @@ export interface FormDataType {
   historySamples: SampleType[];
 
   // Block D: Waiting for Coverage (Standalone)
-  coverageStatus: "trusted" | "not_trusted" | "";
-  coverageImproved: string; // "improved" or "waiting"
-  coverageSS: string; // Swapped from percentage
-  coverageDashboardSS: string;
+  coverageImproved: string; 
+  coverageSS: string; 
 }

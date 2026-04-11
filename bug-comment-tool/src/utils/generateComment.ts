@@ -8,12 +8,11 @@ export const generateComment = (data: FormDataType): string => {
   // SCENARIO D: WAITING FOR COVERAGE (Standalone)
   // -------------------------------------------------------------
   if (activeScenarios.includes("coverage")) {
-    if (data.coverageStatus === "trusted") {
-      let coverageStatement = data.coverageImproved === "improved" 
-        ? "Moreover, the coverage has improved to some extent but not reached the threshold.\n" 
-        : "Waiting for the coverage to be reflected on the dashboard.\n";
+    let coverageStatement = data.coverageImproved === "improved" 
+      ? "Moreover, the coverage has improved to some extent but not reached the threshold.\n" 
+      : "Waiting for the coverage to be reflected on the dashboard.\n";
 
-      return `Hi,
+    return `Hi,
 
 The overruling has been carried out and script is now trusted for ${data.attribute}. 
 Gearloose: ${data.gearloose}
@@ -24,19 +23,6 @@ I will update once the coverage reaches the threshold.
 
 Thanks,
 ${data.name}`;
-    } else {
-      return `Hi,
-
-The overruling has been carried out but the script does not attain trustability for ${data.attribute} for now. Waiting for the script to get trusted.
-Gearloose: ${data.gearloose}
-Dashboard(Agoraphile extractions): ${data.coverageDashboardSS}
-
-I will keep monitoring the merchant and update the status once the coverage reaches the threshold.
-Current coverage: ${data.coverageSS}
-
-Thanks,
-${data.name}`;
-    }
   }
 
   // -------------------------------------------------------------
@@ -130,11 +116,7 @@ ${historySampleText}AIU opted(SS): ${data.historyAIUOptedSS}\n\n`;
     }
 
     commentBody += `Sample for reference:\n${clSampleText}`;
-
-    if (data.isTrustedCL === "no") {
-      commentBody += `Due to above mentioned issues the crawzall is currently not trusted for ${data.attribute}.\n`;
-    }
-    
+    commentBody += `Due to above mentioned issues the crawzall is currently not trusted for ${data.attribute}.\n`;
     commentBody += `Moreover, the script is under modification for aforementioned issues.\nI will update here once the new version of crawzall gets reflected on gearloose.\n\n`;
   }
 
