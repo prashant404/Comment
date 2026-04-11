@@ -1,6 +1,39 @@
 import type { FormDataType } from "../types/index";
 
-export const generateComment = (data: FormDataType): string => {
+// 🧠 Smart Helper: Automatically adds https:// to links if the user forgot it
+const formatURL = (url?: string): string => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  
+  // Don't format empty strings, short text, or things without a dot (like "NA")
+  if (trimmed === "" || trimmed.length < 4 || !trimmed.includes(".")) return trimmed;
+  
+  // If it doesn't start with http:// or https://, add it!
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+};
+
+export const generateComment = (rawData: FormDataType): string => {
+  
+  // 1. Intercept and format all URLs cleanly before generating the comment
+  const data: FormDataType = {
+    ...rawData,
+    gearloose: formatURL(rawData.gearloose),
+    mismatchSS: formatURL(rawData.mismatchSS),
+    bugLink: formatURL(rawData.bugLink),
+    extractor: formatURL(rawData.extractor),
+    dashboardSS: formatURL(rawData.dashboardSS),
+    historyReasonSS: formatURL(rawData.historyReasonSS),
+    historyAIUOptedSS: formatURL(rawData.historyAIUOptedSS),
+    coverageSS: formatURL(rawData.coverageSS),
+    // Notice: We correctly removed coverageDashboardSS here to fix the build error!
+    orIssues: rawData.orIssues.map(i => ({...i, referenceLP: formatURL(i.referenceLP)})),
+    historySamples: rawData.historySamples.map(s => ({...s, cds: formatURL(s.cds), lp: formatURL(s.lp), debug: formatURL(s.debug)})),
+    clSamples: rawData.clSamples.map(s => ({...s, cds: formatURL(s.cds), lp: formatURL(s.lp), debug: formatURL(s.debug)}))
+  };
+
   const { activeScenarios } = data;
   let commentBody = "";
 

@@ -1,29 +1,50 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 // ==========================================
-// 🎨 THEME VARIABLES (GLASS NAVY)
+// 🎨 THEME VARIABLES (Dark & Light)
 // ==========================================
-$bg-main:          #0F1923;                      // Deep navy base
-$bg-layer:         #151F2E;                      // Slightly lifted layer
-$glass-bg:         rgba(255, 255, 255, 0.04);    // Frosted glass fill
-$glass-bg-hover:   rgba(255, 255, 255, 0.07);    // On hover lift
-$glass-border:     rgba(255, 255, 255, 0.08);    // Subtle border
-$glass-border-em:  rgba(255, 255, 255, 0.14);    // Emphasized border
-$text-main:        #E8EDF2;                      // Off-white, not harsh
-$text-muted:       #7A8FA6;                      // Readable gray-blue
-$text-dim:         #4A5A6B;                      // Placeholder / labels
-$accent:           #4F9EE8;                      // Professional blue
-$accent-glow:      rgba(79, 158, 232, 0.15);     // Focus ring / glow
-$accent-hover:     #6AAFEF;
-$success:          #2DD4A0;                      // Teal-green
-$success-bg:       rgba(45, 212, 160, 0.10);
-$danger:           #F05252;
-$amber:            #F59E0B;
-$radius:           14px;
-$radius-sm:        8px;
+:root {
+  /* DARK MODE (Default) - Deep Space Neon Glass */
+  --bg-gradient: radial-gradient(at 47% 33%, #1e3a5f 0, transparent 59%), radial-gradient(at 82% 65%, #0f172a 0, transparent 55%), #111927;
+  --header-bg: rgba(35, 38, 53, 0.6);
+  --card-bg: rgba(35, 38, 53, 0.55);
+  --card-bg-hover: rgba(35, 38, 53, 0.85);
+  --card-border: rgba(255, 255, 255, 0.125);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --input-bg: rgba(0, 0, 0, 0.35);
+  --input-border: rgba(255, 255, 255, 0.15);
+  --input-focus: #38bdf8;
+  --accent-primary: #38bdf8;
+  --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+  --success-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --danger-color: #f87171;
+  --danger-bg: rgba(239, 68, 68, 0.15);
+  --segment-active: rgba(56, 189, 248, 0.15);
+}
+
+[data-theme="light"] {
+  /* LIGHT MODE - Icy Frost Glass */
+  --bg-gradient: radial-gradient(at 20% 30%, #e0e7ff 0, transparent 60%), radial-gradient(at 80% 70%, #bae6fd 0, transparent 60%), #f8fafc;
+  --header-bg: rgba(255, 255, 255, 0.6);
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --card-bg-hover: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(255, 255, 255, 0.8);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --input-bg: rgba(255, 255, 255, 0.6);
+  --input-border: rgba(148, 163, 184, 0.3);
+  --input-focus: #2563eb;
+  --accent-primary: #2563eb;
+  --accent-gradient: linear-gradient(135deg, #0ea5e9 0%, #4f46e5 100%);
+  --success-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --danger-color: #dc2626;
+  --danger-bg: rgba(239, 68, 68, 0.1);
+  --segment-active: rgba(255, 255, 255, 0.9);
+}
 
 // ==========================================
-// 🛠️ BASE
+// 🛠️ BASE STYLES
 // ==========================================
 * {
   box-sizing: border-box;
@@ -33,15 +54,14 @@ $radius-sm:        8px;
 
 body {
   font-family: "Inter", -apple-system, sans-serif;
-  background-color: $bg-main;
-  color: $text-main;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
   height: 100vh;
   overflow: hidden;
+  transition: background 0.4s ease, color 0.4s ease;
 }
 
-// ==========================================
-// 📐 LAYOUT
-// ==========================================
 .app-wrapper {
   display: flex;
   flex-direction: column;
@@ -51,22 +71,41 @@ body {
 }
 
 .top-bar {
-  padding: 14px 28px;
-  background: $glass-bg;
-  border-bottom: 1px solid $glass-border;
+  padding: 16px 32px;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--card-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
 
-  h1 {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: $accent;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
+.top-bar h1 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  background: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--card-border);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.theme-toggle:hover {
+  background: var(--card-bg-hover);
 }
 
 .main-layout {
@@ -74,20 +113,19 @@ body {
   flex: 1;
   overflow: hidden;
   padding: 24px;
-  gap: 20px;
+  gap: 24px;
 }
 
+/* Panels */
 .left-panel {
   flex: 1.2;
   overflow-y: auto;
   padding-right: 8px;
   padding-bottom: 60px;
-
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: $glass-border-em; border-radius: 10px; }
-  &::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 }
+.left-panel::-webkit-scrollbar { width: 6px; }
+.left-panel::-webkit-scrollbar-track { background: transparent; }
+.left-panel::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 10px; }
 
 .right-panel {
   flex: 1;
@@ -95,410 +133,362 @@ body {
   flex-direction: column;
 }
 
-// ==========================================
-// 🃏 CARDS
-// ==========================================
+/* Glassmorphism Cards */
 .card {
-  background: $glass-bg;
-  border: 1px solid $glass-border;
-  border-radius: $radius;
-  padding: 20px;
-  margin-bottom: 16px;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  transition: border-color 0.2s ease;
-
-  &:hover {
-    border-color: $glass-border-em;
-  }
-
-  h2 {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: $text-main;
-  }
-
-  h3 {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: $text-dim;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-  }
+  gap: 20px;
+  transition: all 0.3s ease;
 }
 
 .highlight-card {
-  background: $glass-bg-hover;
-  border: 1px solid $glass-border-em;
+  border-color: rgba(56, 189, 248, 0.4); 
+  background-color: var(--card-bg-hover);
 }
 
-// Accent top border (replaces heavy border-blue)
-.border-accent {
-  border-top: 2px solid $accent;
+.border-blue {
+  border-top: 5px solid;
+  border-image: var(--accent-gradient) 1;
 }
 
-.sample-block {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid $glass-border;
-  border-radius: $radius-sm;
-  padding: 14px;
+h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  .sample-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    strong {
-      font-size: 0.88rem;
-      color: $text-main;
-    }
-  }
-}
-
-.divider-line {
-  height: 1px;
-  background: $glass-border;
-  margin: 6px 0;
-}
-
-// ==========================================
-// 🏷️ BADGES
-// ==========================================
-.badge {
-  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 600;
-
-  &.badge-blue {
-    background: rgba($accent, 0.12);
-    color: $accent;
-    border: 1px solid rgba($accent, 0.25);
-  }
-
-  &.badge-green {
-    background: $success-bg;
-    color: $success;
-    border: 1px solid rgba($success, 0.25);
-  }
-
-  &.badge-amber {
-    background: rgba($amber, 0.1);
-    color: $amber;
-    border: 1px solid rgba($amber, 0.25);
-  }
-
-  &.badge-danger {
-    background: rgba($danger, 0.1);
-    color: $danger;
-    border: 1px solid rgba($danger, 0.25);
-  }
+  gap: 10px;
 }
 
-// ==========================================
-// 📝 FORMS
-// ==========================================
+h3 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted); 
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 10px;
+}
+
+/* Form Elements */
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-
-  label {
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: $text-muted;
-  }
+  gap: 8px;
 }
 
-input,
-textarea {
+label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main); 
+}
+
+input, textarea {
   width: 100%;
-  padding: 9px 13px;
-  border-radius: $radius-sm;
-  border: 1px solid $glass-border;
-  background: rgba(255, 255, 255, 0.04);
-  color: $text-main;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--text-main);
+  font-size: 0.95rem;
   font-family: inherit;
-  font-size: 0.9rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-  &::placeholder {
-    color: $text-dim;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: $accent;
-    box-shadow: 0 0 0 3px $accent-glow;
-  }
+  transition: all 0.2s ease;
 }
 
-textarea {
-  min-height: 80px;
-  resize: vertical;
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--input-focus);
+  background-color: var(--card-bg);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
 }
 
-// ==========================================
-// 🔘 BUTTONS
-// ==========================================
+/* Buttons */
 .button-group-row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 button {
-  padding: 9px 16px;
-  border-radius: $radius-sm;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
-  cursor: pointer;
-  background: $accent;
+}
+
+button:active { transform: scale(0.97); }
+
+.secondary {
+  background-color: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
+}
+
+.secondary:hover {
+  background-color: var(--card-bg-hover);
+  border-color: var(--card-border);
+}
+
+.active {
+  background: var(--accent-gradient);
+  color: #ffffff;
+  box-shadow: 0 8px 16px -4px rgba(56, 189, 248, 0.3);
+}
+
+.active-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  color: #ffffff;
+}
+
+.primary-action {
+  background: var(--success-bg);
   color: white;
-  font-weight: 600;
-  font-size: 0.88rem;
-  font-family: inherit;
-  transition: all 0.18s ease;
-
-  &:hover:not(:disabled) {
-    background: $accent-hover;
-    transform: translateY(-1px);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  // Ghost / outline
-  &.secondary {
-    background: transparent;
-    color: $text-muted;
-    border: 1px solid $glass-border-em;
-
-    &:hover {
-      color: $text-main;
-      border-color: rgba(255, 255, 255, 0.22);
-      background: $glass-bg-hover;
-      transform: none;
-    }
-  }
-
-  // Active state (toggled on)
-  &.active {
-    background: $accent;
-    box-shadow: 0 0 0 2px $accent-glow;
-  }
-
-  // Warning active
-  &.active-warning {
-    background: rgba($amber, 0.15);
-    color: $amber;
-    border: 1px solid rgba($amber, 0.3);
-
-    &:hover { background: rgba($amber, 0.22); }
-  }
-
-  // Dashed outline / add new
-  &.outline-btn {
-    background: transparent;
-    border: 1px dashed $text-dim;
-    color: $text-dim;
-
-    &:hover {
-      border-color: $accent;
-      color: $accent;
-      transform: none;
-    }
-  }
-
-  // Inline danger link
-  &.danger-text {
-    background: transparent;
-    color: $danger;
-    padding: 0;
-    font-size: 0.78rem;
-    border: none;
-
-    &:hover {
-      text-decoration: underline;
-      transform: none;
-    }
-  }
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 18px;
+  flex: 2;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-// ==========================================
-// 📻 RADIO BUTTONS
-// ==========================================
-.radio-group {
-  display: flex;
-  gap: 10px;
+.primary-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px -5px rgba(16, 185, 129, 0.4);
 }
 
-.radio-label {
+.copy-action {
+  background-color: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
   flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 9px 13px;
-  border-radius: $radius-sm;
-  border: 1px solid $glass-border;
-  background: $glass-bg;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: $text-muted;
-  transition: all 0.18s ease;
-
-  &:hover {
-    background: $glass-bg-hover;
-    border-color: $glass-border-em;
-  }
-
-  &.selected {
-    border-color: $accent;
-    background: $accent-glow;
-    color: $accent;
-  }
-
-  input[type="radio"] {
-    accent-color: $accent;
-  }
 }
 
-// ==========================================
-// 📄 OUTPUT & ACTIONS
-// ==========================================
+.danger-text {
+  color: var(--danger-color);
+  background: transparent;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+.danger-text:hover { background: var(--danger-bg); }
+
+/* Blocks */
+.sample-block {
+  background-color: var(--input-bg);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--input-border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sample-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.divider-line {
+  height: 1px;
+  background: var(--card-border);
+  margin: 10px 0;
+}
+
+/* ✨ NEW: Sleek Segmented Controls (Replaced Radios) */
+.segmented-control {
+  display: flex;
+  background-color: var(--input-bg);
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--input-border);
+  gap: 4px;
+}
+
+.segment-btn {
+  flex: 1;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px;
+  margin: 0;
+  box-shadow: none;
+}
+
+.segment-btn:hover {
+  color: var(--text-main);
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.segment-btn.active-segment {
+  background-color: var(--segment-active);
+  color: var(--accent-primary);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Sticky Output */
 .sticky-output {
   height: 100%;
+  border-top: 5px solid;
+  border-image: var(--success-bg) 1;
 }
 
-.actions {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-
-  .primary-action {
-    flex: 2;
-    background: $success-bg;
-    color: $success;
-    border: 1px solid rgba($success, 0.3);
-
-    &:hover:not(:disabled) {
-      background: rgba($success, 0.18);
-      transform: none;
-    }
-  }
-
-  .copy-action {
-    flex: 1;
-    background: transparent;
-    border: 1px solid $glass-border-em;
-    color: $text-muted;
-
-    &:hover {
-      color: $text-main;
-      background: $glass-bg-hover;
-    }
-  }
-}
+.actions { display: flex; gap: 12px; }
 
 .output-container {
   flex: 1;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: $radius-sm;
-  border: 1px solid $glass-border;
+  background-color: var(--input-bg);
+  border-radius: 12px;
   overflow-y: auto;
+  border: 1px solid var(--input-border);
 }
 
 .output {
-  padding: 18px;
+  padding: 24px;
   white-space: pre-wrap;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.82rem;
-  line-height: 1.65;
-  color: $text-main;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.8;
+  color: var(--accent-primary); 
 }
 
-// ==========================================
-// 🔢 METRIC CARDS
-// ==========================================
-.metrics-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-}
-
-.metric-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid $glass-border;
-  border-radius: $radius-sm;
-  padding: 14px 16px;
-
-  .metric-val {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: $text-main;
-  }
-
-  .metric-lbl {
-    font-size: 0.72rem;
-    color: $text-muted;
-    margin-top: 3px;
-  }
-}
-
-// ==========================================
-// 🍞 TOAST
-// ==========================================
+/* Toast */
 .toast {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
-  background: $success-bg;
-  color: $success;
-  border: 1px solid rgba($success, 0.3);
-  padding: 12px 20px;
-  border-radius: $radius-sm;
+  bottom: 32px;
+  right: 32px;
+  background: var(--card-bg-hover);
+  backdrop-filter: blur(16px);
+  color: var(--text-main);
+  padding: 16px 28px;
+  border-radius: 12px;
   font-weight: 600;
-  font-size: 0.88rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.25s ease-out;
-  z-index: 1000;
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--accent-primary);
+  animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 9999;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(100%) scale(0.9); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+// Tabs & Accordions
+.hint-text {
+  font-size: 0.8rem;
+  color: var(--text-muted); 
+  margin-top: -12px;
+  margin-bottom: 12px;
+  b { color: var(--accent-primary); }
+}
+
+.danger-action {
+  background-color: transparent;
+  color: var(--danger-color);
+  border: 1px solid var(--input-border);
+  flex: 0.7;
+}
+.danger-action:hover {
+  background-color: var(--danger-bg);
+  border-color: var(--danger-color);
+}
+
+.tabs-container {
   display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tab-btn {
+  flex: 1;
+  background-color: var(--input-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--input-border);
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background-color: var(--card-bg-hover);
+  color: var(--text-main);
+}
+
+.tab-btn.active-tab {
+  background: var(--segment-active);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.history-card { overflow: hidden; }
+
+.accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 6px; 
+}
+.accordion-list::-webkit-scrollbar { width: 6px; }
+.accordion-list::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 10px; }
+
+.accordion-item {
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+}
+
+.accordion-item.expanded {
+  border-color: var(--accent-primary);
+  background-color: var(--card-bg-hover);
+}
+
+.accordion-header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-
-  &::before {
-    content: '';
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: $success;
-    flex-shrink: 0;
-  }
+  cursor: pointer;
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+.accordion-header .badge {
+  background: var(--segment-active);
+  color: var(--accent-primary);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  margin-right: 8px;
 }
 
-// ==========================================
-// 📱 RESPONSIVE
-// ==========================================
-@media (max-width: 900px) {
+.accordion-body {
+  padding: 0 16px 16px 16px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
   .main-layout { flex-direction: column; overflow-y: auto; }
   .left-panel { overflow-y: visible; padding-right: 0; }
   body { overflow: auto; }

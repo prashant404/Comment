@@ -1,31 +1,138 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import OutputBox from "./components/OutputBox";
 import { generateComment } from "./utils/generateComment";
 import type { FormDataType } from "./types/index";
 
+const getInitialState = (): FormDataType => ({
+  name: localStorage.getItem("buganizer_ldap") || "",
+  attribute: "", gearloose: "", activeScenarios: [],
+  overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", userAgents: "",
+  orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
+  clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }],
+  historyReasonSS: "", historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
+  coverageImproved: "waiting", coverageSS: ""
+});
+
 export default function App() {
   const [toast, setToast] = useState("");
   const [output, setOutput] = useState("");
+  const [formData, setFormData] = useState<FormDataType>(getInitialState());
 
-  const [formData, setFormData] = useState<FormDataType>({
-    name: localStorage.getItem("buganizer_ldap") || "", 
-    attribute: "", gearloose: "", activeScenarios: [],
-    overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", userAgents: "",
-    orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
-    clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }],
-    historyReasonSS: "", historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
-    coverageImproved: "waiting", coverageSS: ""
+  // ✨ NEW: Theme State
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("buganizer_theme") as "dark" | "light") || "dark";
   });
+
+  const [activeTab, setActiveTab] = useState<"output" | "history">("output");
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  const [history, setHistory] = useState<string[]>(() => {
+    const saved = localStorage.getItem("buganizer_history");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Apply theme to body and save to local storage
+  useEffect(() => {
+    document.body.setAttribute("data-theme", theme);
+    localStorage.setItem("buganizer_theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     localStorage.setItem("buganizer_ldap", formData.name);
   }, [formData.name]);
 
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
+  };
+
+  const saveToHistory = (newComment: string) => {
+    setHistory((prev) => {
+      const newHist = [newComment, ...prev].slice(0, 10);
+      localStorage.setItem("buganizer_history", JSON.stringify(newHist));
+      return newHist;
+    });
+  };
+
+  const deleteFromHistory = (indexToDelete: number) => {
+    setHistory((prev) => {
+      const newHist = prev.filter((_, i) => i !== indexToDelete);
+      localStorage.setItem("buganizer_history", JSON.stringify(newHist));
+      return newHist;
+    });
+    if (expandedIndex === indexToDelete) setExpandedIndex(null);
+    showToast("🗑️ History item deleted!");
+  };
+
+  const handleGenerate = useCallback(() => {
+    if (!formData.name || !formData.attribute || !formData.gearloose) {
+      showToast("⚠️ Please fill Global Fields (Name, Attribute, Main Gearloose)");
+      return null;
+    }
+    if (formData.activeScenarios.length === 0) {
+      showToast("⚠️ Please select at least one scenario block");
+      return null;
+    }
+
+    const isValidLink = (str: string) => {
+      if (!str) return true; 
+      const clean = str.trim().toLowerCase();
+      if (clean === "na" || clean === "none" || clean === "n/a") return true;
+      return clean.includes("."); 
+    };
+
+    if (!isValidLink(formData.gearloose)) {
+      showToast("❌ Invalid Gearloose Link! Please provide a real URL or 'NA'.");
+      return null; 
+    }
+
+    if (formData.activeScenarios.includes("overrule") && !isValidLink(formData.mismatchSS)) {
+      showToast("❌ Invalid Mismatch SS Link! Please provide a real URL.");
+      return null;
+    }
+
+    if (formData.activeScenarios.includes("coverage") && !isValidLink(formData.coverageSS)) {
+      showToast("❌ Invalid Coverage SS Link! Please provide a real URL.");
+      return null;
+    }
+
+    const result = generateComment(formData);
+    setOutput(result);
+    saveToHistory(result);
+    setActiveTab("output"); 
+    showToast("✅ Comment Generated successfully!");
+    return result;
+  }, [formData]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        const generated = handleGenerate();
+        if (generated) {
+          navigator.clipboard.writeText(generated);
+          showToast("⚡ Generated & Copied to Clipboard!");
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleGenerate]);
+
+  const handleReset = () => {
+    setFormData((prev) => ({
+      ...getInitialState(),
+      name: prev.name,        
+      attribute: prev.attribute 
+    }));
+    setOutput("");
+    showToast("🧹 Form Reset for Next Bug");
+  };
+
   const handleToggleScenario = (scenario: string) => {
     setFormData((prev) => {
       const isStandalone = scenario === "coverage";
       let newActive = [...prev.activeScenarios];
-
       if (newActive.includes(scenario)) {
         newActive = newActive.filter((s) => s !== scenario);
       } else {
@@ -40,13 +147,10 @@ export default function App() {
     });
   };
 
-  const handleChange = (field: keyof FormDataType, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (field: keyof FormDataType, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
 
-  const addArrayItem = (field: "orIssues" | "clSamples" | "historySamples", defaultObj: any) => {
+  const addArrayItem = (field: "orIssues" | "clSamples" | "historySamples", defaultObj: any) => 
     setFormData((p: any) => ({ ...p, [field]: [...p[field], defaultObj] }));
-  };
 
   const updateArrayItem = (field: "orIssues" | "clSamples" | "historySamples", index: number, key: string, value: string) => {
     setFormData((p: any) => {
@@ -64,37 +168,23 @@ export default function App() {
     });
   };
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
-  };
-
-  const handleGenerate = () => {
-    if (!formData.name || !formData.attribute || !formData.gearloose) {
-      showToast("⚠️ Please fill Global Fields (Name, Attribute, Main Gearloose)");
-      return;
-    }
-    if (formData.activeScenarios.length === 0) {
-      showToast("⚠️ Please select at least one scenario block");
-      return;
-    }
-
-    const result = generateComment(formData);
-    setOutput(result);
-    showToast("✅ Comment Generated successfully!");
-  };
-
   return (
     <div className="app-wrapper">
       <div className="top-bar">
         <h1>⚡ Buganizer Tool</h1>
+        {/* ✨ NEW: Theme Toggle Button */}
+        <button 
+          className="theme-toggle" 
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+        </button>
       </div>
 
       <div className="main-layout">
         <div className="left-panel">
-          
           <div className="card border-blue">
-            <h2>Global Details</h2>
+            <h2>🌍 Global Details</h2>
             <div className="input-group">
               <label>Your Name / LDAP *</label>
               <input placeholder="e.g. prashant" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
@@ -110,7 +200,7 @@ export default function App() {
           </div>
 
           <div className="card">
-            <h2>Select Scenarios</h2>
+            <h2>🧩 Select Scenarios</h2>
             <div className="button-group-row">
               <button className={formData.activeScenarios.includes("overrule") ? "active" : "secondary"} onClick={() => handleToggleScenario("overrule")}>+ Overrule</button>
               <button className={formData.activeScenarios.includes("history") ? "active" : "secondary"} onClick={() => handleToggleScenario("history")}>+ History Mismatch</button>
@@ -125,27 +215,33 @@ export default function App() {
           {formData.activeScenarios.includes("overrule") && (
             <div className="card highlight-card">
               <h2>Block A: Overruling</h2>
-              <div className="radio-group" style={{ marginBottom: "16px" }}>
-                <label className={`radio-label ${formData.overruleType === "dt" ? "selected" : ""}`}>
-                  <input type="radio" checked={formData.overruleType === "dt"} onChange={() => handleChange("overruleType", "dt")} /> DT Comment
-                </label>
-                <label className={`radio-label ${formData.overruleType === "or" ? "selected" : ""}`}>
-                  <input type="radio" checked={formData.overruleType === "or"} onChange={() => handleChange("overruleType", "or")} /> OR Comment
-                </label>
-              </div>
               
+              {/* ✨ NEW: Sleek Segmented Buttons (Replaced Radios) */}
+              <div className="segmented-control" style={{ marginBottom: "16px" }}>
+                <button 
+                  className={`segment-btn ${formData.overruleType === "dt" ? "active-segment" : ""}`} 
+                  onClick={() => handleChange("overruleType", "dt")}
+                >
+                  DT Comment
+                </button>
+                <button 
+                  className={`segment-btn ${formData.overruleType === "or" ? "active-segment" : ""}`} 
+                  onClick={() => handleChange("overruleType", "or")}
+                >
+                  OR Comment
+                </button>
+              </div>
+
               <div className="input-group">
                 <label>Mismatches SS Link *</label>
                 <input placeholder="https://..." value={formData.mismatchSS} onChange={(e) => handleChange("mismatchSS", e.target.value)} />
               </div>
-              
               {formData.overruleType === "dt" && (
                 <div className="input-group">
                   <label>OR Bug Link *</label>
                   <input placeholder="https://..." value={formData.bugLink} onChange={(e) => handleChange("bugLink", e.target.value)} />
                 </div>
               )}
-
               {formData.overruleType === "or" && (
                 <>
                   <div className="input-group">
@@ -160,7 +256,6 @@ export default function App() {
                     <label>User Agents *</label>
                     <input placeholder="all / specific" value={formData.userAgents} onChange={(e) => handleChange("userAgents", e.target.value)} />
                   </div>
-                  
                   <div className="divider-line"></div>
                   <h3>Issues</h3>
                   {formData.orIssues.map((issue, i) => (
@@ -192,7 +287,6 @@ export default function App() {
                 <label>AIU Opted SS Link *</label>
                 <input placeholder="https://..." value={formData.historyAIUOptedSS} onChange={(e) => handleChange("historyAIUOptedSS", e.target.value)} />
               </div>
-              
               <div className="divider-line"></div>
               <h3>History Samples</h3>
               {formData.historySamples.map((sample, i) => (
@@ -240,28 +334,89 @@ export default function App() {
                 <input placeholder="https://..." value={formData.coverageSS} onChange={(e) => handleChange("coverageSS", e.target.value)} />
               </div>
               
-              <div className="radio-group" style={{ marginTop: "12px" }}>
-                <label className={`radio-label ${formData.coverageImproved === "improved" ? "selected" : ""}`}>
-                  <input type="radio" checked={formData.coverageImproved === "improved"} onChange={() => handleChange("coverageImproved", "improved")} /> Coverage Improved
-                </label>
-                <label className={`radio-label ${formData.coverageImproved === "waiting" ? "selected" : ""}`}>
-                  <input type="radio" checked={formData.coverageImproved === "waiting"} onChange={() => handleChange("coverageImproved", "waiting")} /> Waiting to reflect
-                </label>
+              {/* ✨ NEW: Sleek Segmented Buttons */}
+              <div className="segmented-control" style={{ marginTop: "12px" }}>
+                <button 
+                  className={`segment-btn ${formData.coverageImproved === "improved" ? "active-segment" : ""}`} 
+                  onClick={() => handleChange("coverageImproved", "improved")}
+                >
+                  Coverage Improved
+                </button>
+                <button 
+                  className={`segment-btn ${formData.coverageImproved === "waiting" ? "active-segment" : ""}`} 
+                  onClick={() => handleChange("coverageImproved", "waiting")}
+                >
+                  Waiting to reflect
+                </button>
               </div>
             </div>
           )}
-
         </div>
 
         <div className="right-panel">
-          <div className="card sticky-output">
-            <h2>Generated Document</h2>
-            <div className="actions">
-              <button className="primary-action" onClick={handleGenerate}>⚙️ Generate</button>
-              <button className="copy-action" onClick={() => { navigator.clipboard.writeText(output); showToast("📋 Copied!"); }} disabled={!output}>📋 Copy</button>
-            </div>
-            <OutputBox output={output} />
+          <div className="tabs-container">
+            <button className={`tab-btn ${activeTab === "output" ? "active-tab" : ""}`} onClick={() => setActiveTab("output")}>
+              📄 Current Document
+            </button>
+            <button className={`tab-btn ${activeTab === "history" ? "active-tab" : ""}`} onClick={() => setActiveTab("history")}>
+              🕰️ History ({history.length})
+            </button>
           </div>
+
+          {activeTab === "output" && (
+            <div className="card sticky-output">
+              <h2>Generated Document</h2>
+              <div className="hint-text">💡 Power User: Press <b>Ctrl + Enter</b> to Generate & Copy instantly!</div>
+              
+              <div className="actions">
+                <button className="primary-action" onClick={handleGenerate}>⚙️ Generate</button>
+                <button className="copy-action" onClick={() => { navigator.clipboard.writeText(output); showToast("📋 Copied!"); }} disabled={!output}>📋 Copy</button>
+                <button className="danger-action" onClick={handleReset}>🧹 Next Bug</button>
+              </div>
+              
+              <OutputBox output={output} />
+            </div>
+          )}
+
+          {activeTab === "history" && (
+            <div className="card sticky-output history-card">
+              <h2>🕰️ Past Comments</h2>
+              
+              {history.length === 0 ? (
+                <div className="empty-state">No history yet. Generate a comment first!</div>
+              ) : (
+                <div className="accordion-list">
+                  {history.map((item, index) => (
+                    <div key={index} className={`accordion-item ${expandedIndex === index ? "expanded" : ""}`}>
+                      <div className="accordion-header" onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}>
+                        <span className="accordion-title">
+                          <span className="badge">#{history.length - index}</span> 
+                          {item.substring(0, 45).replace(/\n/g, " ")}...
+                        </span>
+                        <span className="icon">{expandedIndex === index ? "▲" : "▼"}</span>
+                      </div>
+                      
+                      {expandedIndex === index && (
+                        <div className="accordion-body">
+                          <div className="actions" style={{ marginBottom: "12px", display: "flex", gap: "12px" }}>
+                            <button className="copy-action" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(item); showToast("📋 History Copied!"); }}>
+                              📋 Copy Comment
+                            </button>
+                            <button className="danger-action" style={{ flex: 0, padding: "12px 20px" }} onClick={() => deleteFromHistory(index)}>
+                              🗑️ Delete
+                            </button>
+                          </div>
+                          <div className="output-container" style={{ maxHeight: "300px" }}>
+                            <pre className="output">{item}</pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {toast && <div className="toast">{toast}</div>}
