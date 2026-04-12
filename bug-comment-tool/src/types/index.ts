@@ -42,4 +42,7 @@ export interface FormDataType {
   // Block D: Waiting for Coverage (Standalone)
   coverageImproved: string; 
   coverageSS: string; 
+  
+  // ✨ Markdown Support
+  outputFormat: "text" | "markdown";
 }

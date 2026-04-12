@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import OutputBox from "./components/OutputBox";
 import { generateComment } from "./utils/generateComment";
 import type { FormDataType } from "./types/index";
 
@@ -10,7 +9,8 @@ const getInitialState = (): FormDataType => ({
   orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
   clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }],
   historyReasonSS: "", historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
-  coverageImproved: "waiting", coverageSS: ""
+  coverageImproved: "waiting", coverageSS: "",
+  outputFormat: "text" // Default to standard plain text
 });
 
 export default function App() {
@@ -18,7 +18,6 @@ export default function App() {
   const [output, setOutput] = useState("");
   const [formData, setFormData] = useState<FormDataType>(getInitialState());
 
-  // ✨ NEW: Theme State
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("buganizer_theme") as "dark" | "light") || "dark";
   });
@@ -31,7 +30,6 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Apply theme to body and save to local storage
   useEffect(() => {
     document.body.setAttribute("data-theme", theme);
     localStorage.setItem("buganizer_theme", theme);
@@ -123,7 +121,8 @@ export default function App() {
     setFormData((prev) => ({
       ...getInitialState(),
       name: prev.name,        
-      attribute: prev.attribute 
+      attribute: prev.attribute,
+      outputFormat: prev.outputFormat
     }));
     setOutput("");
     showToast("🧹 Form Reset for Next Bug");
@@ -172,11 +171,7 @@ export default function App() {
     <div className="app-wrapper">
       <div className="top-bar">
         <h1>⚡ Buganizer Tool</h1>
-        {/* ✨ NEW: Theme Toggle Button */}
-        <button 
-          className="theme-toggle" 
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
+        <button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
         </button>
       </div>
@@ -185,6 +180,26 @@ export default function App() {
         <div className="left-panel">
           <div className="card border-blue">
             <h2>🌍 Global Details</h2>
+            
+            {/* ✨ YOUR MARKDOWN TOGGLE IS RIGHT HERE! */}
+            <div className="input-group" style={{ marginBottom: "12px" }}>
+              <label>Output Format</label>
+              <div className="segmented-control">
+                <button 
+                  className={`segment-btn ${formData.outputFormat === "text" ? "active-segment" : ""}`} 
+                  onClick={() => handleChange("outputFormat", "text")}
+                >
+                  📄 Plain Text
+                </button>
+                <button 
+                  className={`segment-btn ${formData.outputFormat === "markdown" ? "active-segment" : ""}`} 
+                  onClick={() => handleChange("outputFormat", "markdown")}
+                >
+                  📝 Markdown
+                </button>
+              </div>
+            </div>
+
             <div className="input-group">
               <label>Your Name / LDAP *</label>
               <input placeholder="e.g. prashant" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
@@ -215,23 +230,10 @@ export default function App() {
           {formData.activeScenarios.includes("overrule") && (
             <div className="card highlight-card">
               <h2>Block A: Overruling</h2>
-              
-              {/* ✨ NEW: Sleek Segmented Buttons (Replaced Radios) */}
               <div className="segmented-control" style={{ marginBottom: "16px" }}>
-                <button 
-                  className={`segment-btn ${formData.overruleType === "dt" ? "active-segment" : ""}`} 
-                  onClick={() => handleChange("overruleType", "dt")}
-                >
-                  DT Comment
-                </button>
-                <button 
-                  className={`segment-btn ${formData.overruleType === "or" ? "active-segment" : ""}`} 
-                  onClick={() => handleChange("overruleType", "or")}
-                >
-                  OR Comment
-                </button>
+                <button className={`segment-btn ${formData.overruleType === "dt" ? "active-segment" : ""}`} onClick={() => handleChange("overruleType", "dt")}>DT Comment</button>
+                <button className={`segment-btn ${formData.overruleType === "or" ? "active-segment" : ""}`} onClick={() => handleChange("overruleType", "or")}>OR Comment</button>
               </div>
-
               <div className="input-group">
                 <label>Mismatches SS Link *</label>
                 <input placeholder="https://..." value={formData.mismatchSS} onChange={(e) => handleChange("mismatchSS", e.target.value)} />
@@ -333,26 +335,15 @@ export default function App() {
                 <label>Current Coverage SS *</label>
                 <input placeholder="https://..." value={formData.coverageSS} onChange={(e) => handleChange("coverageSS", e.target.value)} />
               </div>
-              
-              {/* ✨ NEW: Sleek Segmented Buttons */}
               <div className="segmented-control" style={{ marginTop: "12px" }}>
-                <button 
-                  className={`segment-btn ${formData.coverageImproved === "improved" ? "active-segment" : ""}`} 
-                  onClick={() => handleChange("coverageImproved", "improved")}
-                >
-                  Coverage Improved
-                </button>
-                <button 
-                  className={`segment-btn ${formData.coverageImproved === "waiting" ? "active-segment" : ""}`} 
-                  onClick={() => handleChange("coverageImproved", "waiting")}
-                >
-                  Waiting to reflect
-                </button>
+                <button className={`segment-btn ${formData.coverageImproved === "improved" ? "active-segment" : ""}`} onClick={() => handleChange("coverageImproved", "improved")}>Coverage Improved</button>
+                <button className={`segment-btn ${formData.coverageImproved === "waiting" ? "active-segment" : ""}`} onClick={() => handleChange("coverageImproved", "waiting")}>Waiting to reflect</button>
               </div>
             </div>
           )}
         </div>
 
+        {/* RIGHT PANEL */}
         <div className="right-panel">
           <div className="tabs-container">
             <button className={`tab-btn ${activeTab === "output" ? "active-tab" : ""}`} onClick={() => setActiveTab("output")}>
@@ -374,14 +365,20 @@ export default function App() {
                 <button className="danger-action" onClick={handleReset}>🧹 Next Bug</button>
               </div>
               
-              <OutputBox output={output} />
+              {/* ✨ NEW INLINE SCROLLING CONTAINER */}
+              <div className="output-container">
+                {output ? (
+                  <pre className="output">{output}</pre>
+                ) : (
+                  <div className="empty-state">Comment will appear here...</div>
+                )}
+              </div>
             </div>
           )}
 
           {activeTab === "history" && (
             <div className="card sticky-output history-card">
               <h2>🕰️ Past Comments</h2>
-              
               {history.length === 0 ? (
                 <div className="empty-state">No history yet. Generate a comment first!</div>
               ) : (

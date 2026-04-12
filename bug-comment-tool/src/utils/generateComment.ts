@@ -1,14 +1,12 @@
-import type { FormDataType } from "../types/index";
+import type { FormDataType, SampleType } from "../types/index";
 
 // 🧠 Smart Helper: Automatically adds https:// to links if the user forgot it
 const formatURL = (url?: string): string => {
   if (!url) return "";
   const trimmed = url.trim();
   
-  // Don't format empty strings, short text, or things without a dot (like "NA")
   if (trimmed === "" || trimmed.length < 4 || !trimmed.includes(".")) return trimmed;
   
-  // If it doesn't start with http:// or https://, add it!
   if (!/^https?:\/\//i.test(trimmed)) {
     return `https://${trimmed}`;
   }
@@ -17,7 +15,7 @@ const formatURL = (url?: string): string => {
 
 export const generateComment = (rawData: FormDataType): string => {
   
-  // 1. Intercept and format all URLs cleanly before generating the comment
+  // 1. Intercept and format all URLs cleanly
   const data: FormDataType = {
     ...rawData,
     gearloose: formatURL(rawData.gearloose),
@@ -28,13 +26,30 @@ export const generateComment = (rawData: FormDataType): string => {
     historyReasonSS: formatURL(rawData.historyReasonSS),
     historyAIUOptedSS: formatURL(rawData.historyAIUOptedSS),
     coverageSS: formatURL(rawData.coverageSS),
-    // Notice: We correctly removed coverageDashboardSS here to fix the build error!
     orIssues: rawData.orIssues.map(i => ({...i, referenceLP: formatURL(i.referenceLP)})),
     historySamples: rawData.historySamples.map(s => ({...s, cds: formatURL(s.cds), lp: formatURL(s.lp), debug: formatURL(s.debug)})),
     clSamples: rawData.clSamples.map(s => ({...s, cds: formatURL(s.cds), lp: formatURL(s.lp), debug: formatURL(s.debug)}))
   };
 
-  const { activeScenarios } = data;
+  const { activeScenarios, outputFormat } = data;
+  const isMd = outputFormat === "markdown";
+
+  // ✨ Smart Link Builders
+  const link = (label: string, url: string) => {
+    if (!url) return "";
+    return isMd ? `[${label}](${url})` : `${label}: ${url}`;
+  };
+
+  // ✨ Groups CDS, LP, and Debug onto a SINGLE line!
+  const getSampleLinksOnOneLine = (s: SampleType) => {
+    const parts = [];
+    if (s.cds) parts.push(link('CDS', s.cds));
+    if (s.lp) parts.push(link('LP', s.lp));
+    if (s.debug) parts.push(link('Debug', s.debug));
+    // Uses spaces for Markdown, or a neat | pipe for plain text
+    return parts.join(isMd ? "   " : " | ");
+  };
+
   let commentBody = "";
 
   // -------------------------------------------------------------
@@ -45,40 +60,21 @@ export const generateComment = (rawData: FormDataType): string => {
       ? "Moreover, the coverage has improved to some extent but not reached the threshold.\n" 
       : "Waiting for the coverage to be reflected on the dashboard.\n";
 
-    return `Hi,
-
-The overruling has been carried out and script is now trusted for ${data.attribute}. 
-Gearloose: ${data.gearloose}
-
-${coverageStatement}Current coverage: ${data.coverageSS}
-
-I will update once the coverage reaches the threshold.
-
-Thanks,
-${data.name}`;
+    commentBody = `The overruling has been carried out and script is now trusted for ${data.attribute}.\n${link('Gearloose', data.gearloose)}\n\n${coverageStatement}Current coverage: ${isMd ? `[SS](${data.coverageSS})` : data.coverageSS}\n\nI will update once the coverage reaches the threshold.\n\n`;
   }
 
   // -------------------------------------------------------------
   // CASE 4: COMBINED OVERRULE + HISTORY MISMATCH
   // -------------------------------------------------------------
-  if (activeScenarios.includes("overrule") && activeScenarios.includes("history")) {
+  else if (activeScenarios.includes("overrule") && activeScenarios.includes("history")) {
     let historySampleText = "";
     data.historySamples.forEach((s) => {
       if (s.cds || s.lp || s.debug) {
-        historySampleText += `CDS: ${s.cds}\nLP: ${s.lp}\nSS(AIU Opted): ${data.historyAIUOptedSS}\nDebug: ${s.debug}\n\n`;
+        historySampleText += `${getSampleLinksOnOneLine(s)}\n`;
       }
     });
 
-    commentBody += `After analyzing the merchant, it has been observed that script for ${data.attribute} is distrusted for all user agents due to mismatches in ${data.attribute} which needs to be overruled also here are high percentage of history mismatches for ${data.attribute} leading to ‘BASE_${data.attribute.toUpperCase()}_DISTRUST_THRESHOLD_REACHED’, where ${data.attribute} given in feed differs from ${data.attribute} present on landing page and script is extracting ${data.attribute} as per landing page Moreover, AIU is opted for ${data.attribute}.
-
-Gearloose: ${data.gearloose}
-Mismatches(${data.attribute}): ${data.mismatchSS}
-
-Overruling Bug(${data.bugLink || ""}) has been raised for mismatches in ${data.attribute}.
-
-Reason: ${data.historyReasonSS}
-Sample:
-${historySampleText}I will update once the overruling has been done and the script gets trusted for ${data.attribute}.\n\n`;
+    commentBody += `After analyzing the merchant, it has been observed that script for ${data.attribute} is distrusted for all user agents due to mismatches in ${data.attribute} which needs to be overruled also here are high percentage of history mismatches for ${data.attribute} leading to ‘BASE_${data.attribute.toUpperCase()}_DISTRUST_THRESHOLD_REACHED’, where ${data.attribute} given in feed differs from ${data.attribute} present on landing page and script is extracting ${data.attribute} as per landing page Moreover, AIU is opted for ${data.attribute}.\n\n${link('Gearloose', data.gearloose)}\n${link(`Mismatches(${data.attribute})`, data.mismatchSS)}\n\n${isMd ? `[Overruling Bug](${data.bugLink})` : `Overruling Bug(${data.bugLink || ""})`} has been raised for mismatches in ${data.attribute}.\n\n${link('Reason', data.historyReasonSS)}\nSample:\n${historySampleText}${link('AIU Opted(SS)', data.historyAIUOptedSS)}\n\nI will update once the overruling has been done and the script gets trusted for ${data.attribute}.\n\n`;
   } 
   
   // -------------------------------------------------------------
@@ -86,30 +82,19 @@ ${historySampleText}I will update once the overruling has been done and the scri
   // -------------------------------------------------------------
   else if (activeScenarios.includes("overrule")) {
     if (data.overruleType === "dt") {
-      commentBody += `After analyzing the merchant, the following mismatches have been encountered:
-Gearloose: ${data.gearloose}
-
-Mismatches(${data.attribute}): ${data.mismatchSS}
-
-However, overruling bug (${data.bugLink}) has been raised for the mismatches in ${data.attribute}. I will update once overruling has been done.\n\n`;
+      commentBody += `After analyzing the merchant, the following mismatches have been encountered:\n${link('Gearloose', data.gearloose)}\n\n${link(`Mismatches(${data.attribute})`, data.mismatchSS)}\n\nHowever, ${isMd ? `[overruling bug](${data.bugLink})` : `overruling bug (${data.bugLink})`} has been raised for the mismatches in ${data.attribute}. I will update once overruling has been done.\n\n`;
     } else if (data.overruleType === "or") {
       
       let issuesText = "";
       data.orIssues.forEach((issue) => {
         issuesText += `Issue: ${issue.description}\n`;
-        if (issue.rating) issuesText += `Rating: ${issue.rating}\n`;
-        if (issue.inspector) issuesText += `Inspector: ${issue.inspector}\n`;
-        if (issue.referenceLP) issuesText += `Reference LP: ${issue.referenceLP}\n`;
+        if (issue.rating && issue.rating.trim() !== "") issuesText += `Rating: ${issue.rating}\n`;
+        if (issue.inspector && issue.inspector.trim() !== "") issuesText += `Inspector: ${issue.inspector}\n`;
+        if (issue.referenceLP && issue.referenceLP.trim() !== "") issuesText += `${link('Reference LP', issue.referenceLP)}\n`;
         issuesText += "\n";
       });
 
-      commentBody += `Gearloose: ${data.gearloose}
-Extractor: ${data.extractor}
-
-${issuesText}Mismatches(${data.attribute}): ${data.mismatchSS}
-Dashboard(Agoraphile extractions): ${data.dashboardSS}
-
-Please overrule similar mismatches for ${data.userAgents || "_______"} user agents.\n\n`;
+      commentBody += `${link('Gearloose', data.gearloose)}\n${link('Extractor', data.extractor)}\n\n${issuesText}${link(`Mismatches(${data.attribute})`, data.mismatchSS)}\n${link('Dashboard(Agoraphile extractions)', data.dashboardSS)}\n\nPlease overrule similar mismatches for ${data.userAgents || "_______"} user agents.\n\n`;
     }
   }
 
@@ -120,15 +105,11 @@ Please overrule similar mismatches for ${data.userAgents || "_______"} user agen
     let historySampleText = "";
     data.historySamples.forEach((s) => {
       if (s.cds || s.lp || s.debug) {
-        historySampleText += `CDS: ${s.cds}\nLP: ${s.lp}\nDebug: ${s.debug}\n\n`;
+        historySampleText += `${getSampleLinksOnOneLine(s)}\n`;
       }
     });
 
-    commentBody += `After analyzing the merchant, it has been observed that script for ${data.attribute} is distrusted for all/specefic as here are high percentage of history mismatches leading to ___, where ${data.attribute} given in feed differs from ${data.attribute} present on landing page and script is extracting ${data.attribute} as per landing page Moreover, AIU is opted for ${data.attribute}.
-Gearloose: ${data.gearloose}
-Reason: ${data.historyReasonSS}
-Sample:
-${historySampleText}AIU opted(SS): ${data.historyAIUOptedSS}\n\n`;
+    commentBody += `After analyzing the merchant, it has been observed that script for ${data.attribute} is distrusted for all/specefic as here are high percentage of history mismatches leading to ___, where ${data.attribute} given in feed differs from ${data.attribute} present on landing page and script is extracting ${data.attribute} as per landing page Moreover, AIU is opted for ${data.attribute}.\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\nSample:\n${historySampleText}${link('AIU opted(SS)', data.historyAIUOptedSS)}\n\n`;
   }
 
   // -------------------------------------------------------------
@@ -138,20 +119,35 @@ ${historySampleText}AIU opted(SS): ${data.historyAIUOptedSS}\n\n`;
     let clSampleText = "";
     data.clSamples.forEach((s) => {
       if (s.cds || s.lp || s.debug) {
-        clSampleText += `CDS: ${s.cds}\nLP: ${s.lp}\nDebug: ${s.debug}\nRating: ${s.rating || ""}\nInspector: ${s.inspector || ""}\n\n`;
+        clSampleText += `${getSampleLinksOnOneLine(s)}\n`;
+        if (s.rating && s.rating.trim() !== "") clSampleText += `Rating: ${s.rating}\n`;
+        if (s.inspector && s.inspector.trim() !== "") clSampleText += `Inspector: ${s.inspector}\n`;
+        clSampleText += `\n`;
       }
     });
 
     if (commentBody !== "") {
-      commentBody += `Furthermore, regarding CL Creation:\n`;
+      commentBody += `Furthermore, regarding CL Creation:\n\n`;
     } else {
-      commentBody += `After analyzing the merchant, few issues have been encountered:\n\nGearloose: ${data.gearloose}\n\n`;
+      commentBody += `After analyzing the merchant, few issues have been encountered:\n\n${link('Gearloose', data.gearloose)}\n\n`;
     }
 
-    commentBody += `Sample for reference:\n${clSampleText}`;
-    commentBody += `Due to above mentioned issues the crawzall is currently not trusted for ${data.attribute}.\n`;
-    commentBody += `Moreover, the script is under modification for aforementioned issues.\nI will update here once the new version of crawzall gets reflected on gearloose.\n\n`;
+    commentBody += `Sample for reference:\n${clSampleText}Due to above mentioned issues the crawzall is currently not trusted for ${data.attribute}.\nMoreover, the script is under modification for aforementioned issues.\nI will update here once the new version of crawzall gets reflected on gearloose.\n\n`;
   }
 
-  return `Hi,\n\n${commentBody}Thanks,\n${data.name}`;
+  // Final comment assembly
+  let finalComment = `Hi,\n\n${commentBody}Thanks,\n${data.name}`;
+
+  // ✨ MARKDOWN LINE-BREAK ENFORCER:
+  if (isMd) {
+    finalComment = finalComment.split('\n').map(line => {
+      // Append '\' tightly to the end of any line that actually has text
+      if (line.trim().length > 0 && !line.trim().endsWith('\\')) {
+        return `${line.trimEnd()} \\`;
+      }
+      return line;
+    }).join('\n');
+  }
+
+  return finalComment;
 };
