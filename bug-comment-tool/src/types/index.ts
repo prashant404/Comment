@@ -14,35 +14,26 @@ export interface ORIssueType {
 }
 
 export interface FormDataType {
-  // Global Fields
   name: string;
-  attribute: string;
+  attribute: string[]; // ✨ NOW AN ARRAY FOR MULTI-SELECT!
   gearloose: string;
-  
-  // Activated Scenarios Array
   activeScenarios: string[];
-
-  // Block A: Overrule (DT/OR)
   overruleType: "dt" | "or" | "";
   mismatchSS: string;
   bugLink: string;
   extractor: string;
   dashboardSS: string;
-  userAgents: string;
+  
+  userAgents: string[]; 
+  
   orIssues: ORIssueType[];
-
-  // Block B: CL Creation
   clSamples: SampleType[];
-
-  // Block C: History Mismatches
-  historyReasonSS: string;
+  historyCondition: string;
+  historyReasonSS: string; 
+  isAIUOpted: boolean;
   historyAIUOptedSS: string;
   historySamples: SampleType[];
-
-  // Block D: Waiting for Coverage (Standalone)
   coverageImproved: string; 
   coverageSS: string; 
-  
-  // ✨ Markdown Support
   outputFormat: "text" | "markdown";
 }

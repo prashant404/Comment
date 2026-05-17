@@ -4,14 +4,19 @@ import type { FormDataType } from "./types/index";
 
 const getInitialState = (): FormDataType => ({
   name: localStorage.getItem("buganizer_ldap") || "",
-  attribute: "", gearloose: "", activeScenarios: [],
-  overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", userAgents: "",
+  attribute: [], // ✨ Now an array!
+  gearloose: "", activeScenarios: [],
+  overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", 
+  userAgents: [], 
   orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
   clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }],
-  historyReasonSS: "", historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
+  historyCondition: "", historyReasonSS: "", isAIUOpted: false, historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
   coverageImproved: "waiting", coverageSS: "",
-  outputFormat: "text" // Default to standard plain text
+  outputFormat: "text"
 });
+
+// ✨ Specific User Agents exactly as requested
+const AVAILABLE_USER_AGENTS = ["desktop", "webkit_desktop", "mobile", "webkit_mobile"];
 
 export default function App() {
   const [toast, setToast] = useState("");
@@ -63,12 +68,19 @@ export default function App() {
   };
 
   const handleGenerate = useCallback(() => {
-    if (!formData.name || !formData.attribute || !formData.gearloose) {
+    // ✨ Validations now checking arrays correctly
+    if (!formData.name || formData.attribute.length === 0 || !formData.gearloose) {
       showToast("⚠️ Please fill Global Fields (Name, Attribute, Main Gearloose)");
       return null;
     }
     if (formData.activeScenarios.length === 0) {
       showToast("⚠️ Please select at least one scenario block");
+      return null;
+    }
+    
+    // ✨ User Agents are NO LONGER optional if Overrule or History is selected
+    if ((formData.activeScenarios.includes("overrule") || formData.activeScenarios.includes("history")) && formData.userAgents.length === 0) {
+      showToast("⚠️ Please select at least one User Agent!");
       return null;
     }
 
@@ -80,18 +92,24 @@ export default function App() {
     };
 
     if (!isValidLink(formData.gearloose)) {
-      showToast("❌ Invalid Gearloose Link! Please provide a real URL or 'NA'.");
-      return null; 
+      showToast("❌ Invalid Gearloose Link!"); return null; 
     }
-
     if (formData.activeScenarios.includes("overrule") && !isValidLink(formData.mismatchSS)) {
-      showToast("❌ Invalid Mismatch SS Link! Please provide a real URL.");
-      return null;
+      showToast("❌ Invalid Mismatch SS Link!"); return null;
     }
-
     if (formData.activeScenarios.includes("coverage") && !isValidLink(formData.coverageSS)) {
-      showToast("❌ Invalid Coverage SS Link! Please provide a real URL.");
-      return null;
+      showToast("❌ Invalid Coverage SS Link!"); return null;
+    }
+    if (formData.activeScenarios.includes("history")) {
+      if (!formData.historyCondition) {
+        showToast("⚠️ Please select a History Condition!"); return null;
+      }
+      if (!isValidLink(formData.historyReasonSS)) {
+        showToast("❌ Invalid Reason SS Link!"); return null;
+      }
+      if (formData.isAIUOpted && !isValidLink(formData.historyAIUOptedSS)) {
+        showToast("❌ Invalid AIU Opted SS Link!"); return null;
+      }
     }
 
     const result = generateComment(formData);
@@ -121,8 +139,9 @@ export default function App() {
     setFormData((prev) => ({
       ...getInitialState(),
       name: prev.name,        
-      attribute: prev.attribute,
-      outputFormat: prev.outputFormat
+      attribute: prev.attribute, // keep attributes across resets
+      outputFormat: prev.outputFormat,
+      userAgents: prev.userAgents // keep agents across resets
     }));
     setOutput("");
     showToast("🧹 Form Reset for Next Bug");
@@ -147,10 +166,26 @@ export default function App() {
   };
 
   const handleChange = (field: keyof FormDataType, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
+  
+  // ✨ Toggles Attribute on and off
+  const toggleAttribute = (attr: string) => {
+    setFormData((prev) => {
+      const exists = prev.attribute.includes(attr);
+      if (exists) return { ...prev, attribute: prev.attribute.filter(a => a !== attr) };
+      return { ...prev, attribute: [...prev.attribute, attr] };
+    });
+  };
 
-  const addArrayItem = (field: "orIssues" | "clSamples" | "historySamples", defaultObj: any) => 
-    setFormData((p: any) => ({ ...p, [field]: [...p[field], defaultObj] }));
+  // ✨ Toggles a user agent on and off
+  const toggleUserAgent = (agent: string) => {
+    setFormData((prev) => {
+      const exists = prev.userAgents.includes(agent);
+      if (exists) return { ...prev, userAgents: prev.userAgents.filter(a => a !== agent) };
+      return { ...prev, userAgents: [...prev.userAgents, agent] };
+    });
+  };
 
+  const addArrayItem = (field: "orIssues" | "clSamples" | "historySamples", defaultObj: any) => setFormData((p: any) => ({ ...p, [field]: [...p[field], defaultObj] }));
   const updateArrayItem = (field: "orIssues" | "clSamples" | "historySamples", index: number, key: string, value: string) => {
     setFormData((p: any) => {
       const newArr = [...p[field]];
@@ -158,7 +193,6 @@ export default function App() {
       return { ...p, [field]: newArr };
     });
   };
-
   const removeArrayItem = (field: "orIssues" | "clSamples" | "historySamples", index: number) => {
     setFormData((p: any) => {
       const newArr = [...p[field]];
@@ -166,6 +200,9 @@ export default function App() {
       return { ...p, [field]: newArr };
     });
   };
+
+  const isPrice = formData.attribute.includes("price");
+  const isAvail = formData.attribute.includes("availability");
 
   return (
     <div className="app-wrapper">
@@ -180,37 +217,58 @@ export default function App() {
         <div className="left-panel">
           <div className="card border-blue">
             <h2>🌍 Global Details</h2>
-            
-            {/* ✨ YOUR MARKDOWN TOGGLE IS RIGHT HERE! */}
             <div className="input-group" style={{ marginBottom: "12px" }}>
               <label>Output Format</label>
               <div className="segmented-control">
+                <button className={`segment-btn ${formData.outputFormat === "text" ? "active-segment" : ""}`} onClick={() => handleChange("outputFormat", "text")}>📄 Plain Text</button>
+                <button className={`segment-btn ${formData.outputFormat === "markdown" ? "active-segment" : ""}`} onClick={() => handleChange("outputFormat", "markdown")}>📝 Markdown</button>
+              </div>
+            </div>
+            
+            <div className="input-group">
+              <label>Your Name / LDAP *</label>
+              <input placeholder="e.g. prashant" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
+            </div>
+
+            {/* ✨ ATTRIBUTE IS NOW A MULTI-SELECT TOGGLE */}
+            <div className="input-group">
+              <label>Attribute *</label>
+              <div className="segmented-control">
                 <button 
-                  className={`segment-btn ${formData.outputFormat === "text" ? "active-segment" : ""}`} 
-                  onClick={() => handleChange("outputFormat", "text")}
+                  className={`segment-btn ${formData.attribute.includes("price") ? "active-segment" : ""}`} 
+                  onClick={() => toggleAttribute("price")}
                 >
-                  📄 Plain Text
+                  💰 Price
                 </button>
                 <button 
-                  className={`segment-btn ${formData.outputFormat === "markdown" ? "active-segment" : ""}`} 
-                  onClick={() => handleChange("outputFormat", "markdown")}
+                  className={`segment-btn ${formData.attribute.includes("availability") ? "active-segment" : ""}`} 
+                  onClick={() => toggleAttribute("availability")}
                 >
-                  📝 Markdown
+                  📦 Availability
                 </button>
               </div>
             </div>
 
             <div className="input-group">
-              <label>Your Name / LDAP *</label>
-              <input placeholder="e.g. prashant" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
-            </div>
-            <div className="input-group">
-              <label>Attribute *</label>
-              <input placeholder="price / availability" value={formData.attribute} onChange={(e) => handleChange("attribute", e.target.value)} />
-            </div>
-            <div className="input-group">
               <label>{formData.overruleType === "dt" ? "Main Gearloose Link (SS) *" : "Main Gearloose Link *"}</label>
               <input placeholder="https://..." value={formData.gearloose} onChange={(e) => handleChange("gearloose", e.target.value)} />
+            </div>
+
+            {/* ✨ USER AGENTS (REQUIRED) */}
+            <div className="input-group" style={{ marginTop: "12px" }}>
+              <label>User Agents *</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                {AVAILABLE_USER_AGENTS.map((ua) => (
+                  <button 
+                    key={ua}
+                    className={`segment-btn ${formData.userAgents.includes(ua) ? "active-segment" : ""}`}
+                    onClick={() => toggleUserAgent(ua)}
+                    style={{ border: "1px solid var(--input-border)", background: formData.userAgents.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}
+                  >
+                    {ua}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -222,9 +280,7 @@ export default function App() {
               <button className={formData.activeScenarios.includes("cl") ? "active" : "secondary"} onClick={() => handleToggleScenario("cl")}>+ CL Creation</button>
             </div>
             <div className="divider-line"></div>
-            <button className={formData.activeScenarios.includes("coverage") ? "active-warning" : "secondary"} onClick={() => handleToggleScenario("coverage")}>
-              Stand-alone: Waiting for Coverage
-            </button>
+            <button className={formData.activeScenarios.includes("coverage") ? "active-warning" : "secondary"} onClick={() => handleToggleScenario("coverage")}>Stand-alone: Waiting for Coverage</button>
           </div>
 
           {formData.activeScenarios.includes("overrule") && (
@@ -246,18 +302,8 @@ export default function App() {
               )}
               {formData.overruleType === "or" && (
                 <>
-                  <div className="input-group">
-                    <label>Extractor Link *</label>
-                    <input placeholder="https://..." value={formData.extractor} onChange={(e) => handleChange("extractor", e.target.value)} />
-                  </div>
-                  <div className="input-group">
-                    <label>Dashboard SS Link *</label>
-                    <input placeholder="https://..." value={formData.dashboardSS} onChange={(e) => handleChange("dashboardSS", e.target.value)} />
-                  </div>
-                  <div className="input-group">
-                    <label>User Agents *</label>
-                    <input placeholder="all / specific" value={formData.userAgents} onChange={(e) => handleChange("userAgents", e.target.value)} />
-                  </div>
+                  <div className="input-group"><label>Extractor Link *</label><input placeholder="https://..." value={formData.extractor} onChange={(e) => handleChange("extractor", e.target.value)} /></div>
+                  <div className="input-group"><label>Dashboard SS Link *</label><input placeholder="https://..." value={formData.dashboardSS} onChange={(e) => handleChange("dashboardSS", e.target.value)} /></div>
                   <div className="divider-line"></div>
                   <h3>Issues</h3>
                   {formData.orIssues.map((issue, i) => (
@@ -281,14 +327,58 @@ export default function App() {
           {formData.activeScenarios.includes("history") && (
             <div className="card highlight-card">
               <h2>Block B: History Mismatches</h2>
+              
+              <div className="input-group">
+                <label>History Condition *</label>
+                {(isPrice || isAvail) ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {isPrice && (
+                      <>
+                        <button className={`segment-btn ${formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>
+                          BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED
+                        </button>
+                        <button className={`segment-btn ${formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_PRICE_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>
+                          BASE_PRICE_DISTRUST_THRESHOLD_REACHED
+                        </button>
+                      </  >
+                    )}
+                    {isAvail && (
+                      <button className={`segment-btn ${formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "AVAILABILITY_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>
+                        AVAILABILITY_DISTRUST_THRESHOLD_REACHED
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="empty-state" style={{ padding: "10px", fontSize: "0.85rem", color: "#f59e0b" }}>
+                    ⚠️ Please select Price or Availability in Global Details!
+                  </div>
+                )}
+              </div>
+
               <div className="input-group">
                 <label>Reason SS Link *</label>
                 <input placeholder="https://..." value={formData.historyReasonSS} onChange={(e) => handleChange("historyReasonSS", e.target.value)} />
               </div>
-              <div className="input-group">
-                <label>AIU Opted SS Link *</label>
-                <input placeholder="https://..." value={formData.historyAIUOptedSS} onChange={(e) => handleChange("historyAIUOptedSS", e.target.value)} />
+
+              <div className="input-group" style={{ marginTop: "10px", marginBottom: "10px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.9rem" }}>
+                  <input 
+                    type="checkbox" 
+                    checked={formData.isAIUOpted} 
+                    onChange={(e) => handleChange("isAIUOpted", e.target.checked)} 
+                    style={{ width: "18px", height: "18px", margin: 0, cursor: "pointer" }}
+                  />
+                  Has AIU been opted for this attribute?
+                </label>
               </div>
+
+              {formData.isAIUOpted && (
+                <div className="input-group animate-slide-down">
+                  <label>AIU Opted SS Link *</label>
+                  <input placeholder="https://..." value={formData.historyAIUOptedSS} onChange={(e) => handleChange("historyAIUOptedSS", e.target.value)} />
+                </div>
+              )}
+
               <div className="divider-line"></div>
               <h3>History Samples</h3>
               {formData.historySamples.map((sample, i) => (
@@ -343,15 +433,10 @@ export default function App() {
           )}
         </div>
 
-        {/* RIGHT PANEL */}
         <div className="right-panel">
           <div className="tabs-container">
-            <button className={`tab-btn ${activeTab === "output" ? "active-tab" : ""}`} onClick={() => setActiveTab("output")}>
-              📄 Current Document
-            </button>
-            <button className={`tab-btn ${activeTab === "history" ? "active-tab" : ""}`} onClick={() => setActiveTab("history")}>
-              🕰️ History ({history.length})
-            </button>
+            <button className={`tab-btn ${activeTab === "output" ? "active-tab" : ""}`} onClick={() => setActiveTab("output")}>📄 Current Document</button>
+            <button className={`tab-btn ${activeTab === "history" ? "active-tab" : ""}`} onClick={() => setActiveTab("history")}>🕰️ History ({history.length})</button>
           </div>
 
           {activeTab === "output" && (
@@ -365,13 +450,8 @@ export default function App() {
                 <button className="danger-action" onClick={handleReset}>🧹 Next Bug</button>
               </div>
               
-              {/* ✨ NEW INLINE SCROLLING CONTAINER */}
               <div className="output-container">
-                {output ? (
-                  <pre className="output">{output}</pre>
-                ) : (
-                  <div className="empty-state">Comment will appear here...</div>
-                )}
+                {output ? <pre className="output">{output}</pre> : <div className="empty-state">Comment will appear here...</div>}
               </div>
             </div>
           )}
@@ -396,14 +476,10 @@ export default function App() {
                       {expandedIndex === index && (
                         <div className="accordion-body">
                           <div className="actions" style={{ marginBottom: "12px", display: "flex", gap: "12px" }}>
-                            <button className="copy-action" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(item); showToast("📋 History Copied!"); }}>
-                              📋 Copy Comment
-                            </button>
-                            <button className="danger-action" style={{ flex: 0, padding: "12px 20px" }} onClick={() => deleteFromHistory(index)}>
-                              🗑️ Delete
-                            </button>
+                            <button className="copy-action" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(item); showToast("📋 History Copied!"); }}>📋 Copy Comment</button>
+                            <button className="danger-action" style={{ flex: 0, padding: "12px 20px" }} onClick={() => deleteFromHistory(index)}>🗑️ Delete</button>
                           </div>
-                          <div className="output-container" style={{ maxHeight: "300px" }}>
+                          <div className="output-container" style={{ maxHeight: "300px", overflowY: "auto" }}>
                             <pre className="output">{item}</pre>
                           </div>
                         </div>
