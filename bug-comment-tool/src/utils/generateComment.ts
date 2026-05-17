@@ -27,24 +27,41 @@ export const generateComment = (rawData: FormDataType): string => {
     clSamples: rawData.clSamples.map(s => ({...s, cds: formatURL(s.cds), lp: formatURL(s.lp), debug: formatURL(s.debug)}))
   };
 
-  const { activeScenarios, outputFormat, isAIUOpted, userAgents, attribute } = data;
+  const { activeScenarios, outputFormat, isAIUOpted } = data;
   const isMd = outputFormat === "markdown";
 
-  // Format Attributes
-  const attrString = attribute.join(" and ");
+  // ✨ SMART ENGINE: Gets the correct Attributes & UAs based on Local Overrides
+  const getScenarioDetails = (scenario: 'overrule' | 'history' | 'global') => {
+    let attrs = data.attribute;
+    let uas = data.userAgents;
 
-  // ✨ Format User Agents AND Pluralization
-  let uaString = "";
-  let uaPlural = "user agents"; // Default to plural
-  
-  if (userAgents.length === 1) {
-    uaString = userAgents;
-    uaPlural = "user agent"; // Switch to singular!
-  } else if (userAgents.length > 1) {
-    const last = userAgents[userAgents.length - 1];
-    const rest = userAgents.slice(0, -1).join(", ");
-    uaString = `${rest} and ${last}`;
-  }
+    if (scenario === 'overrule' && data.overruleOverride) {
+      attrs = data.overruleAttr.length ? data.overruleAttr : attrs;
+      uas = data.overruleUAs.length ? data.overruleUAs : uas;
+    } else if (scenario === 'history' && data.historyOverride) {
+      attrs = data.historyAttr.length ? data.historyAttr : attrs;
+      uas = data.historyUAs.length ? data.historyUAs : uas;
+    }
+
+    const attrStr = attrs.join(" and ");
+    let uaStr = "";
+    let uaPlural = "user agents";
+
+    if (uas.length === 1) {
+      uaStr = uas;
+      uaPlural = "user agent";
+    } else if (uas.length > 1) {
+      const last = uas[uas.length - 1];
+      const rest = uas.slice(0, -1).join(", ");
+      uaStr = `${rest} and ${last}`;
+    }
+
+    return { attrStr, uaStr, uaPlural };
+  };
+
+  const ov = getScenarioDetails('overrule');
+  const hist = getScenarioDetails('history');
+  const glob = getScenarioDetails('global');
 
   const link = (label: string, url: string) => {
     if (!url) return "";
@@ -69,11 +86,11 @@ export const generateComment = (rawData: FormDataType): string => {
       ? "Moreover, the coverage has improved to some extent but not reached the threshold.\n" 
       : "Waiting for the coverage to be reflected on the dashboard.\n";
 
-    commentBody = `The overruling has been carried out and script is now trusted for ${attrString}.\n${link('Gearloose', data.gearloose)}\n\n${coverageStatement}Current coverage: ${isMd ? `[SS](${data.coverageSS})` : data.coverageSS}\n\nI will update once the coverage reaches the threshold.\n\n`;
+    commentBody = `The overruling has been carried out and script is now trusted for ${glob.attrStr}.\n${link('Gearloose', data.gearloose)}\n\n${coverageStatement}Current coverage: ${isMd ? `[SS](${data.coverageSS})` : data.coverageSS}\n\nI will update once the coverage reaches the threshold.\n\n`;
   }
 
   // -------------------------------------------------------------
-  // CASE 4: COMBINED OVERRULE + HISTORY MISMATCH
+  // CASE 4: COMBINED OVERRULE (DT ONLY) + HISTORY MISMATCH
   // -------------------------------------------------------------
   else if (activeScenarios.includes("overrule") && activeScenarios.includes("history")) {
     let historySampleText = "";
@@ -81,11 +98,20 @@ export const generateComment = (rawData: FormDataType): string => {
       if (s.cds || s.lp || s.debug) historySampleText += `${formatSampleLinks(s)}\n`;
     });
 
-    const aiuText = isAIUOpted ? ` However AIU is opted for ${attrString} and feed will get updated.` : "";
+    const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
     const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
 
-    // ✨ Injected ${uaPlural}
-    commentBody += `After analyzing the merchant it has been observed that script for ${attrString} is distrusted for ${uaString} ${uaPlural} due to mismatches in ${attrString} which needs to be overruled. Also, there are high percentage of history mismatches for ${attrString} where ${attrString} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link(`Mismatches(${attrString})`, data.mismatchSS)}\n\n${isMd ? `[Overruling Bug](${data.bugLink})` : `Overruling Bug(${data.bugLink || ""})`} has been raised for mismatches in ${attrString}.\n\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update once the overruling has been done and the script gets trusted for ${attrString}.\n\n`;
+    // Paragraph 1: Overrule
+    commentBody += `After analyzing the merchant, it has been observed that script for ${ov.attrStr} is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in ${ov.attrStr} which needs to be overruled.\n\n`;
+    commentBody += `${link('Gearloose', data.gearloose)}\n`;
+    commentBody += `${link(`Mismatches(${ov.attrStr})`, data.mismatchSS)}\n\n`;
+    commentBody += `${isMd ? `[Overruling Bug](${data.bugLink})` : `Overruling Bug(${data.bugLink || ""})`} has been raised for mismatches in ${ov.attrStr}.\n\n`;
+
+    // Paragraph 2: History Mismatch
+    commentBody += `Moreover, there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n`;
+    commentBody += `${link('Reason', data.historyReasonSS)}\n\n`;
+    commentBody += `Sample:\n${historySampleText}${aiuSS}\n`;
+    commentBody += `I will update once the overruling has been done and the script gets trusted.\n\n`;
   } 
   
   // -------------------------------------------------------------
@@ -93,7 +119,7 @@ export const generateComment = (rawData: FormDataType): string => {
   // -------------------------------------------------------------
   else if (activeScenarios.includes("overrule")) {
     if (data.overruleType === "dt") {
-      commentBody += `After analyzing the merchant, the following mismatches have been encountered:\n${link('Gearloose', data.gearloose)}\n\n${link(`Mismatches(${attrString})`, data.mismatchSS)}\n\nHowever, ${isMd ? `[overruling bug](${data.bugLink})` : `overruling bug (${data.bugLink})`} has been raised for the mismatches in ${attrString}. I will update once overruling has been done.\n\n`;
+      commentBody += `After analyzing the merchant, the following mismatches have been encountered:\n${link('Gearloose', data.gearloose)}\n\n${link(`Mismatches(${ov.attrStr})`, data.mismatchSS)}\n\nHowever, ${isMd ? `[overruling bug](${data.bugLink})` : `overruling bug (${data.bugLink})`} has been raised for the mismatches in ${ov.attrStr}. I will update once overruling has been done.\n\n`;
     } else if (data.overruleType === "or") {
       let issuesText = "";
       data.orIssues.forEach((issue) => {
@@ -103,8 +129,7 @@ export const generateComment = (rawData: FormDataType): string => {
         if (issue.referenceLP && issue.referenceLP.trim() !== "") issuesText += `${link('Reference LP', issue.referenceLP)}\n`;
         issuesText += "\n";
       });
-      // ✨ Injected ${uaPlural}
-      commentBody += `${link('Gearloose', data.gearloose)}\n${link('Extractor', data.extractor)}\n\n${issuesText}${link(`Mismatches(${attrString})`, data.mismatchSS)}\n${link('Dashboard(Agoraphile extractions)', data.dashboardSS)}\n\nPlease overrule similar mismatches for ${uaString} ${uaPlural}.\n\n`;
+      commentBody += `${link('Gearloose', data.gearloose)}\n${link('Extractor', data.extractor)}\n\n${issuesText}${link(`Mismatches(${ov.attrStr})`, data.mismatchSS)}\n${link('Dashboard(Agoraphile extractions)', data.dashboardSS)}\n\nPlease overrule similar mismatches for ${ov.uaStr} ${ov.uaPlural}.\n\n`;
     }
   }
 
@@ -117,11 +142,10 @@ export const generateComment = (rawData: FormDataType): string => {
       if (s.cds || s.lp || s.debug) historySampleText += `${formatSampleLinks(s)}\n`;
     });
 
-    const aiuText = isAIUOpted ? ` However AIU is opted for ${attrString} and feed will get updated.` : "";
+    const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
     const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
 
-    // ✨ Injected ${uaPlural}
-    commentBody += `After analyzing the merchant it has been observed that there are high percentage of history mismatches for ${attrString} for ${uaString} ${uaPlural} where ${attrString} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update the status accordingly.\n\n`;
+    commentBody += `After analyzing the merchant it has been observed that there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update the status accordingly.\n\n`;
   }
 
   // -------------------------------------------------------------
@@ -144,7 +168,7 @@ export const generateComment = (rawData: FormDataType): string => {
       commentBody += `After analyzing the merchant, few issues have been encountered:\n\n${link('Gearloose', data.gearloose)}\n\n`;
     }
 
-    commentBody += `Sample for reference:\n${clSampleText}Due to above mentioned issues the crawzall is currently not trusted for ${attrString}.\nMoreover, the script is under modification for aforementioned issues.\nI will update here once the new version of crawzall gets reflected on gearloose.\n\n`;
+    commentBody += `Sample for reference:\n${clSampleText}Due to above mentioned issues the crawzall is currently not trusted for ${glob.attrStr}.\nMoreover, the script is under modification for aforementioned issues.\nI will update here once the new version of crawzall gets reflected on gearloose.\n\n`;
   }
 
   let finalComment = `Hi,\n\n${commentBody}Thanks,\n${data.name}`;

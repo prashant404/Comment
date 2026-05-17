@@ -4,18 +4,15 @@ import type { FormDataType } from "./types/index";
 
 const getInitialState = (): FormDataType => ({
   name: localStorage.getItem("buganizer_ldap") || "",
-  attribute: [], // ✨ Now an array!
-  gearloose: "", activeScenarios: [],
-  overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", 
-  userAgents: [], 
-  orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
+  attribute: [], gearloose: "", activeScenarios: [], userAgents: [], 
+  overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
+  overruleOverride: false, overruleAttr: [], overruleUAs: [],
   clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }],
   historyCondition: "", historyReasonSS: "", isAIUOpted: false, historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
-  coverageImproved: "waiting", coverageSS: "",
-  outputFormat: "text"
+  historyOverride: false, historyAttr: [], historyUAs: [],
+  coverageImproved: "waiting", coverageSS: "", outputFormat: "text"
 });
 
-// ✨ Specific User Agents exactly as requested
 const AVAILABLE_USER_AGENTS = ["desktop", "webkit_desktop", "mobile", "webkit_mobile"];
 
 export default function App() {
@@ -23,10 +20,7 @@ export default function App() {
   const [output, setOutput] = useState("");
   const [formData, setFormData] = useState<FormDataType>(getInitialState());
 
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    return (localStorage.getItem("buganizer_theme") as "dark" | "light") || "dark";
-  });
-
+  const [theme, setTheme] = useState<"dark" | "light">(() => (localStorage.getItem("buganizer_theme") as "dark" | "light") || "dark");
   const [activeTab, setActiveTab] = useState<"output" | "history">("output");
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
@@ -40,14 +34,9 @@ export default function App() {
     localStorage.setItem("buganizer_theme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    localStorage.setItem("buganizer_ldap", formData.name);
-  }, [formData.name]);
+  useEffect(() => { localStorage.setItem("buganizer_ldap", formData.name); }, [formData.name]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
-  };
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
   const saveToHistory = (newComment: string) => {
     setHistory((prev) => {
@@ -68,20 +57,14 @@ export default function App() {
   };
 
   const handleGenerate = useCallback(() => {
-    // ✨ Validations now checking arrays correctly
     if (!formData.name || formData.attribute.length === 0 || !formData.gearloose) {
-      showToast("⚠️ Please fill Global Fields (Name, Attribute, Main Gearloose)");
-      return null;
+      showToast("⚠️ Please fill Global Fields (Name, Attribute, Main Gearloose)"); return null;
     }
     if (formData.activeScenarios.length === 0) {
-      showToast("⚠️ Please select at least one scenario block");
-      return null;
+      showToast("⚠️ Please select at least one scenario block"); return null;
     }
-    
-    // ✨ User Agents are NO LONGER optional if Overrule or History is selected
-    if ((formData.activeScenarios.includes("overrule") || formData.activeScenarios.includes("history")) && formData.userAgents.length === 0) {
-      showToast("⚠️ Please select at least one User Agent!");
-      return null;
+    if ((formData.activeScenarios.includes("overrule") || formData.activeScenarios.includes("history")) && formData.userAgents.length === 0 && !formData.overruleOverride && !formData.historyOverride) {
+      showToast("⚠️ Please select at least one User Agent!"); return null;
     }
 
     const isValidLink = (str: string) => {
@@ -91,31 +74,18 @@ export default function App() {
       return clean.includes("."); 
     };
 
-    if (!isValidLink(formData.gearloose)) {
-      showToast("❌ Invalid Gearloose Link!"); return null; 
-    }
-    if (formData.activeScenarios.includes("overrule") && !isValidLink(formData.mismatchSS)) {
-      showToast("❌ Invalid Mismatch SS Link!"); return null;
-    }
-    if (formData.activeScenarios.includes("coverage") && !isValidLink(formData.coverageSS)) {
-      showToast("❌ Invalid Coverage SS Link!"); return null;
-    }
+    if (!isValidLink(formData.gearloose)) { showToast("❌ Invalid Gearloose Link!"); return null; }
+    
+    if (formData.activeScenarios.includes("overrule") && !isValidLink(formData.mismatchSS)) { showToast("❌ Invalid Mismatch SS Link!"); return null; }
+    
     if (formData.activeScenarios.includes("history")) {
-      if (!formData.historyCondition) {
-        showToast("⚠️ Please select a History Condition!"); return null;
-      }
-      if (!isValidLink(formData.historyReasonSS)) {
-        showToast("❌ Invalid Reason SS Link!"); return null;
-      }
-      if (formData.isAIUOpted && !isValidLink(formData.historyAIUOptedSS)) {
-        showToast("❌ Invalid AIU Opted SS Link!"); return null;
-      }
+      if (!formData.historyCondition) { showToast("⚠️ Please select a History Condition!"); return null; }
+      if (!isValidLink(formData.historyReasonSS)) { showToast("❌ Invalid Reason SS Link!"); return null; }
+      if (formData.isAIUOpted && !isValidLink(formData.historyAIUOptedSS)) { showToast("❌ Invalid AIU Opted SS Link!"); return null; }
     }
 
     const result = generateComment(formData);
-    setOutput(result);
-    saveToHistory(result);
-    setActiveTab("output"); 
+    setOutput(result); saveToHistory(result); setActiveTab("output"); 
     showToast("✅ Comment Generated successfully!");
     return result;
   }, [formData]);
@@ -125,10 +95,7 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         const generated = handleGenerate();
-        if (generated) {
-          navigator.clipboard.writeText(generated);
-          showToast("⚡ Generated & Copied to Clipboard!");
-        }
+        if (generated) { navigator.clipboard.writeText(generated); showToast("⚡ Generated & Copied to Clipboard!"); }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -138,25 +105,26 @@ export default function App() {
   const handleReset = () => {
     setFormData((prev) => ({
       ...getInitialState(),
-      name: prev.name,        
-      attribute: prev.attribute, // keep attributes across resets
-      outputFormat: prev.outputFormat,
-      userAgents: prev.userAgents // keep agents across resets
+      name: prev.name, attribute: prev.attribute, outputFormat: prev.outputFormat, userAgents: prev.userAgents
     }));
-    setOutput("");
-    showToast("🧹 Form Reset for Next Bug");
+    setOutput(""); showToast("🧹 Form Reset for Next Bug");
   };
 
   const handleToggleScenario = (scenario: string) => {
     setFormData((prev) => {
-      const isStandalone = scenario === "coverage";
       let newActive = [...prev.activeScenarios];
+      
+      // ✨ OR Comment Conflict Check: If activating History while OR is active, switch to DT
+      if (scenario === "history" && prev.activeScenarios.includes("overrule") && prev.overruleType === "or") {
+        showToast("ℹ️ Switched Overrule to DT (OR is incompatible with History)");
+        return { ...prev, activeScenarios: [...newActive, scenario], overruleType: "dt" };
+      }
+
       if (newActive.includes(scenario)) {
         newActive = newActive.filter((s) => s !== scenario);
       } else {
-        if (isStandalone) {
-          newActive = ["coverage"];
-        } else {
+        if (scenario === "coverage") newActive = ["coverage"];
+        else {
           newActive = newActive.filter((s) => s !== "coverage");
           newActive.push(scenario);
         }
@@ -167,50 +135,33 @@ export default function App() {
 
   const handleChange = (field: keyof FormDataType, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
   
-  // ✨ Toggles Attribute on and off
-  const toggleAttribute = (attr: string) => {
+  // Generic toggle for arrays
+  const toggleArrayItem = (field: "attribute" | "userAgents" | "overruleAttr" | "overruleUAs" | "historyAttr" | "historyUAs", item: string) => {
     setFormData((prev) => {
-      const exists = prev.attribute.includes(attr);
-      if (exists) return { ...prev, attribute: prev.attribute.filter(a => a !== attr) };
-      return { ...prev, attribute: [...prev.attribute, attr] };
-    });
-  };
-
-  // ✨ Toggles a user agent on and off
-  const toggleUserAgent = (agent: string) => {
-    setFormData((prev) => {
-      const exists = prev.userAgents.includes(agent);
-      if (exists) return { ...prev, userAgents: prev.userAgents.filter(a => a !== agent) };
-      return { ...prev, userAgents: [...prev.userAgents, agent] };
+      const exists = prev[field].includes(item as never);
+      if (exists) return { ...prev, [field]: prev[field].filter(a => a !== item) };
+      return { ...prev, [field]: [...prev[field], item] };
     });
   };
 
   const addArrayItem = (field: "orIssues" | "clSamples" | "historySamples", defaultObj: any) => setFormData((p: any) => ({ ...p, [field]: [...p[field], defaultObj] }));
   const updateArrayItem = (field: "orIssues" | "clSamples" | "historySamples", index: number, key: string, value: string) => {
-    setFormData((p: any) => {
-      const newArr = [...p[field]];
-      newArr[index] = { ...newArr[index], [key]: value };
-      return { ...p, [field]: newArr };
-    });
+    setFormData((p: any) => { const newArr = [...p[field]]; newArr[index] = { ...newArr[index], [key]: value }; return { ...p, [field]: newArr }; });
   };
   const removeArrayItem = (field: "orIssues" | "clSamples" | "historySamples", index: number) => {
-    setFormData((p: any) => {
-      const newArr = [...p[field]];
-      newArr.splice(index, 1);
-      return { ...p, [field]: newArr };
-    });
+    setFormData((p: any) => { const newArr = [...p[field]]; newArr.splice(index, 1); return { ...p, [field]: newArr }; });
   };
 
-  const isPrice = formData.attribute.includes("price");
-  const isAvail = formData.attribute.includes("availability");
+  // Helper to get active attributes for conditions
+  const activeHistoryAttrs = formData.historyOverride && formData.historyAttr.length ? formData.historyAttr : formData.attribute;
+  const isPrice = activeHistoryAttrs.includes("price");
+  const isAvail = activeHistoryAttrs.includes("availability");
 
   return (
     <div className="app-wrapper">
       <div className="top-bar">
         <h1>⚡ Buganizer Tool</h1>
-        <button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-          {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
-        </button>
+        <button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}</button>
       </div>
 
       <div className="main-layout">
@@ -230,45 +181,26 @@ export default function App() {
               <input placeholder="e.g. prashant" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
             </div>
 
-            {/* ✨ ATTRIBUTE IS NOW A MULTI-SELECT TOGGLE */}
             <div className="input-group">
               <label>Attribute *</label>
               <div className="segmented-control">
-                <button 
-                  className={`segment-btn ${formData.attribute.includes("price") ? "active-segment" : ""}`} 
-                  onClick={() => toggleAttribute("price")}
-                >
-                  💰 Price
-                </button>
-                <button 
-                  className={`segment-btn ${formData.attribute.includes("availability") ? "active-segment" : ""}`} 
-                  onClick={() => toggleAttribute("availability")}
-                >
-                  📦 Availability
-                </button>
+                <button className={`segment-btn ${formData.attribute.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "price")}>💰 Price</button>
+                <button className={`segment-btn ${formData.attribute.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "availability")}>📦 Availability</button>
               </div>
             </div>
 
             <div className="input-group">
-              <label>{formData.overruleType === "dt" ? "Main Gearloose Link (SS) *" : "Main Gearloose Link *"}</label>
-              <input placeholder="https://..." value={formData.gearloose} onChange={(e) => handleChange("gearloose", e.target.value)} />
-            </div>
-
-            {/* ✨ USER AGENTS (REQUIRED) */}
-            <div className="input-group" style={{ marginTop: "12px" }}>
               <label>User Agents *</label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 {AVAILABLE_USER_AGENTS.map((ua) => (
-                  <button 
-                    key={ua}
-                    className={`segment-btn ${formData.userAgents.includes(ua) ? "active-segment" : ""}`}
-                    onClick={() => toggleUserAgent(ua)}
-                    style={{ border: "1px solid var(--input-border)", background: formData.userAgents.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}
-                  >
-                    {ua}
-                  </button>
+                  <button key={ua} className={`segment-btn ${formData.userAgents.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgents", ua)} style={{ border: "1px solid var(--input-border)", background: formData.userAgents.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}>{ua}</button>
                 ))}
               </div>
+            </div>
+
+            <div className="input-group" style={{marginTop: "12px"}}>
+              <label>{formData.overruleType === "dt" ? "Main Gearloose Link (SS) *" : "Main Gearloose Link *"}</label>
+              <input placeholder="https://..." value={formData.gearloose} onChange={(e) => handleChange("gearloose", e.target.value)} />
             </div>
           </div>
 
@@ -288,17 +220,53 @@ export default function App() {
               <h2>Block A: Overruling</h2>
               <div className="segmented-control" style={{ marginBottom: "16px" }}>
                 <button className={`segment-btn ${formData.overruleType === "dt" ? "active-segment" : ""}`} onClick={() => handleChange("overruleType", "dt")}>DT Comment</button>
-                <button className={`segment-btn ${formData.overruleType === "or" ? "active-segment" : ""}`} onClick={() => handleChange("overruleType", "or")}>OR Comment</button>
+                <button 
+                  className={`segment-btn ${formData.overruleType === "or" ? "active-segment" : ""}`} 
+                  onClick={() => {
+                    handleChange("overruleType", "or");
+                    // ✨ If OR is selected, block History Mismatch!
+                    if (formData.activeScenarios.includes("history")) {
+                      handleChange("activeScenarios", formData.activeScenarios.filter(s => s !== "history"));
+                      showToast("ℹ️ History Mismatch disabled (Incompatible with OR Comment)");
+                    }
+                  }}
+                >OR Comment</button>
               </div>
+
+              {/* ✨ OVERRULE LOCAL OVERRIDE */}
+              <div className="input-group" style={{ marginBottom: "12px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.85rem", color: "var(--accent-primary)" }}>
+                  <input type="checkbox" checked={formData.overruleOverride} onChange={(e) => handleChange("overruleOverride", e.target.checked)} style={{ width: "16px", height: "16px", margin: 0, cursor: "pointer" }} />
+                  🛠️ Use different Attribute/User Agents for Overruling?
+                </label>
+              </div>
+
+              {formData.overruleOverride && (
+                <div style={{ padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", marginBottom: "16px", border: "1px dashed var(--accent-primary)" }}>
+                  <div className="input-group" style={{ marginBottom: "12px" }}>
+                    <label>Local Attribute</label>
+                    <div className="segmented-control">
+                      <button className={`segment-btn ${formData.overruleAttr.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("overruleAttr", "price")}>💰 Price</button>
+                      <button className={`segment-btn ${formData.overruleAttr.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("overruleAttr", "availability")}>📦 Availability</button>
+                    </div>
+                  </div>
+                  <div className="input-group">
+                    <label>Local User Agents</label>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                      {AVAILABLE_USER_AGENTS.map((ua) => (
+                        <button key={ua} className={`segment-btn ${formData.overruleUAs.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("overruleUAs", ua)} style={{ border: "1px solid var(--input-border)", background: formData.overruleUAs.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}>{ua}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="input-group">
                 <label>Mismatches SS Link *</label>
                 <input placeholder="https://..." value={formData.mismatchSS} onChange={(e) => handleChange("mismatchSS", e.target.value)} />
               </div>
               {formData.overruleType === "dt" && (
-                <div className="input-group">
-                  <label>OR Bug Link *</label>
-                  <input placeholder="https://..." value={formData.bugLink} onChange={(e) => handleChange("bugLink", e.target.value)} />
-                </div>
+                <div className="input-group"><label>OR Bug Link *</label><input placeholder="https://..." value={formData.bugLink} onChange={(e) => handleChange("bugLink", e.target.value)} /></div>
               )}
               {formData.overruleType === "or" && (
                 <>
@@ -308,10 +276,7 @@ export default function App() {
                   <h3>Issues</h3>
                   {formData.orIssues.map((issue, i) => (
                     <div key={i} className="sample-block">
-                      <div className="sample-header">
-                        <strong>Issue {i + 1}</strong>
-                        {formData.orIssues.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("orIssues", i)}>Remove</button>}
-                      </div>
+                      <div className="sample-header"><strong>Issue {i + 1}</strong>{formData.orIssues.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("orIssues", i)}>Remove</button>}</div>
                       <textarea placeholder="Issue Description *" value={issue.description} onChange={(e) => updateArrayItem("orIssues", i, "description", e.target.value)} />
                       <input placeholder="Rating" value={issue.rating} onChange={(e) => updateArrayItem("orIssues", i, "rating", e.target.value)} />
                       <input placeholder="Inspector" value={issue.inspector} onChange={(e) => updateArrayItem("orIssues", i, "inspector", e.target.value)} />
@@ -327,6 +292,34 @@ export default function App() {
           {formData.activeScenarios.includes("history") && (
             <div className="card highlight-card">
               <h2>Block B: History Mismatches</h2>
+
+              {/* ✨ HISTORY LOCAL OVERRIDE */}
+              <div className="input-group" style={{ marginBottom: "12px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.85rem", color: "var(--accent-primary)" }}>
+                  <input type="checkbox" checked={formData.historyOverride} onChange={(e) => handleChange("historyOverride", e.target.checked)} style={{ width: "16px", height: "16px", margin: 0, cursor: "pointer" }} />
+                  🛠️ Use different Attribute/User Agents for History?
+                </label>
+              </div>
+
+              {formData.historyOverride && (
+                <div style={{ padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", marginBottom: "16px", border: "1px dashed var(--accent-primary)" }}>
+                  <div className="input-group" style={{ marginBottom: "12px" }}>
+                    <label>Local Attribute</label>
+                    <div className="segmented-control">
+                      <button className={`segment-btn ${formData.historyAttr.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "price")}>💰 Price</button>
+                      <button className={`segment-btn ${formData.historyAttr.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "availability")}>📦 Availability</button>
+                    </div>
+                  </div>
+                  <div className="input-group">
+                    <label>Local User Agents</label>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                      {AVAILABLE_USER_AGENTS.map((ua) => (
+                        <button key={ua} className={`segment-btn ${formData.historyUAs.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyUAs", ua)} style={{ border: "1px solid var(--input-border)", background: formData.historyUAs.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}>{ua}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="input-group">
                 <label>History Condition *</label>
@@ -334,59 +327,26 @@ export default function App() {
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {isPrice && (
                       <>
-                        <button className={`segment-btn ${formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>
-                          BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED
-                        </button>
-                        <button className={`segment-btn ${formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_PRICE_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>
-                          BASE_PRICE_DISTRUST_THRESHOLD_REACHED
-                        </button>
+                        <button className={`segment-btn ${formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED</button>
+                        <button className={`segment-btn ${formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_PRICE_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>BASE_PRICE_DISTRUST_THRESHOLD_REACHED</button>
                       </  >
                     )}
                     {isAvail && (
-                      <button className={`segment-btn ${formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "AVAILABILITY_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>
-                        AVAILABILITY_DISTRUST_THRESHOLD_REACHED
-                      </button>
+                      <button className={`segment-btn ${formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "AVAILABILITY_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>AVAILABILITY_DISTRUST_THRESHOLD_REACHED</button>
                     )}
                   </div>
-                ) : (
-                  <div className="empty-state" style={{ padding: "10px", fontSize: "0.85rem", color: "#f59e0b" }}>
-                    ⚠️ Please select Price or Availability in Global Details!
-                  </div>
-                )}
+                ) : (<div className="empty-state" style={{ padding: "10px", fontSize: "0.85rem", color: "#f59e0b" }}>⚠️ Please select an Attribute above!</div>)}
               </div>
 
-              <div className="input-group">
-                <label>Reason SS Link *</label>
-                <input placeholder="https://..." value={formData.historyReasonSS} onChange={(e) => handleChange("historyReasonSS", e.target.value)} />
-              </div>
-
-              <div className="input-group" style={{ marginTop: "10px", marginBottom: "10px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.9rem" }}>
-                  <input 
-                    type="checkbox" 
-                    checked={formData.isAIUOpted} 
-                    onChange={(e) => handleChange("isAIUOpted", e.target.checked)} 
-                    style={{ width: "18px", height: "18px", margin: 0, cursor: "pointer" }}
-                  />
-                  Has AIU been opted for this attribute?
-                </label>
-              </div>
-
-              {formData.isAIUOpted && (
-                <div className="input-group animate-slide-down">
-                  <label>AIU Opted SS Link *</label>
-                  <input placeholder="https://..." value={formData.historyAIUOptedSS} onChange={(e) => handleChange("historyAIUOptedSS", e.target.value)} />
-                </div>
-              )}
+              <div className="input-group"><label>Reason SS Link *</label><input placeholder="https://..." value={formData.historyReasonSS} onChange={(e) => handleChange("historyReasonSS", e.target.value)} /></div>
+              <div className="input-group" style={{ marginTop: "10px", marginBottom: "10px" }}><label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.9rem" }}><input type="checkbox" checked={formData.isAIUOpted} onChange={(e) => handleChange("isAIUOpted", e.target.checked)} style={{ width: "18px", height: "18px", margin: 0, cursor: "pointer" }}/>Has AIU been opted for this attribute?</label></div>
+              {formData.isAIUOpted && (<div className="input-group animate-slide-down"><label>AIU Opted SS Link *</label><input placeholder="https://..." value={formData.historyAIUOptedSS} onChange={(e) => handleChange("historyAIUOptedSS", e.target.value)} /></div>)}
 
               <div className="divider-line"></div>
               <h3>History Samples</h3>
               {formData.historySamples.map((sample, i) => (
                 <div key={i} className="sample-block">
-                  <div className="sample-header">
-                    <strong>Sample {i + 1}</strong>
-                    {formData.historySamples.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("historySamples", i)}>Remove</button>}
-                  </div>
+                  <div className="sample-header"><strong>Sample {i + 1}</strong>{formData.historySamples.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("historySamples", i)}>Remove</button>}</div>
                   <input placeholder="CDS Link" value={sample.cds} onChange={(e) => updateArrayItem("historySamples", i, "cds", e.target.value)} />
                   <input placeholder="LP Link" value={sample.lp} onChange={(e) => updateArrayItem("historySamples", i, "lp", e.target.value)} />
                   <input placeholder="Debug Link" value={sample.debug} onChange={(e) => updateArrayItem("historySamples", i, "debug", e.target.value)} />
@@ -397,16 +357,13 @@ export default function App() {
           )}
 
           {formData.activeScenarios.includes("cl") && (
-            <div className="card highlight-card">
+             <div className="card highlight-card">
               <h2>Block C: CL Creation</h2>
               <div className="divider-line"></div>
               <h3>CL Samples</h3>
               {formData.clSamples.map((sample, i) => (
                 <div key={i} className="sample-block">
-                  <div className="sample-header">
-                    <strong>Sample {i + 1}</strong>
-                    {formData.clSamples.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("clSamples", i)}>Remove</button>}
-                  </div>
+                  <div className="sample-header"><strong>Sample {i + 1}</strong>{formData.clSamples.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("clSamples", i)}>Remove</button>}</div>
                   <input placeholder="CDS Link *" value={sample.cds} onChange={(e) => updateArrayItem("clSamples", i, "cds", e.target.value)} />
                   <input placeholder="LP Link *" value={sample.lp} onChange={(e) => updateArrayItem("clSamples", i, "lp", e.target.value)} />
                   <input placeholder="Debug Link *" value={sample.debug} onChange={(e) => updateArrayItem("clSamples", i, "debug", e.target.value)} />
@@ -443,13 +400,11 @@ export default function App() {
             <div className="card sticky-output">
               <h2>Generated Document</h2>
               <div className="hint-text">💡 Power User: Press <b>Ctrl + Enter</b> to Generate & Copy instantly!</div>
-              
               <div className="actions">
                 <button className="primary-action" onClick={handleGenerate}>⚙️ Generate</button>
                 <button className="copy-action" onClick={() => { navigator.clipboard.writeText(output); showToast("📋 Copied!"); }} disabled={!output}>📋 Copy</button>
                 <button className="danger-action" onClick={handleReset}>🧹 Next Bug</button>
               </div>
-              
               <div className="output-container">
                 {output ? <pre className="output">{output}</pre> : <div className="empty-state">Comment will appear here...</div>}
               </div>
@@ -466,22 +421,16 @@ export default function App() {
                   {history.map((item, index) => (
                     <div key={index} className={`accordion-item ${expandedIndex === index ? "expanded" : ""}`}>
                       <div className="accordion-header" onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}>
-                        <span className="accordion-title">
-                          <span className="badge">#{history.length - index}</span> 
-                          {item.substring(0, 45).replace(/\n/g, " ")}...
-                        </span>
+                        <span className="accordion-title"><span className="badge">#{history.length - index}</span> {item.substring(0, 45).replace(/\n/g, " ")}...</span>
                         <span className="icon">{expandedIndex === index ? "▲" : "▼"}</span>
                       </div>
-                      
                       {expandedIndex === index && (
                         <div className="accordion-body">
                           <div className="actions" style={{ marginBottom: "12px", display: "flex", gap: "12px" }}>
                             <button className="copy-action" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(item); showToast("📋 History Copied!"); }}>📋 Copy Comment</button>
                             <button className="danger-action" style={{ flex: 0, padding: "12px 20px" }} onClick={() => deleteFromHistory(index)}>🗑️ Delete</button>
                           </div>
-                          <div className="output-container" style={{ maxHeight: "300px", overflowY: "auto" }}>
-                            <pre className="output">{item}</pre>
-                          </div>
+                          <div className="output-container" style={{ maxHeight: "300px", overflowY: "auto" }}><pre className="output">{item}</pre></div>
                         </div>
                       )}
                     </div>
