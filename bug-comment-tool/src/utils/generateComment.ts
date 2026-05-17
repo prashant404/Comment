@@ -30,15 +30,12 @@ export const generateComment = (rawData: FormDataType): string => {
   const { activeScenarios, outputFormat, isAIUOpted } = data;
   const isMd = outputFormat === "markdown";
 
-  // ✨ SMART ENGINE: Gets the correct Attributes & UAs based on Local Overrides
+  // ✨ SMART ENGINE: Overrule always uses Global. History uses Override ONLY if both are active!
   const getScenarioDetails = (scenario: 'overrule' | 'history' | 'global') => {
     let attrs = data.attribute;
     let uas = data.userAgents;
 
-    if (scenario === 'overrule' && data.overruleOverride) {
-      attrs = data.overruleAttr.length ? data.overruleAttr : attrs;
-      uas = data.overruleUAs.length ? data.overruleUAs : uas;
-    } else if (scenario === 'history' && data.historyOverride) {
+    if (scenario === 'history' && data.historyOverride && activeScenarios.includes("overrule") && activeScenarios.includes("history")) {
       attrs = data.historyAttr.length ? data.historyAttr : attrs;
       uas = data.historyUAs.length ? data.historyUAs : uas;
     }
@@ -101,17 +98,7 @@ export const generateComment = (rawData: FormDataType): string => {
     const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
     const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
 
-    // Paragraph 1: Overrule
-    commentBody += `After analyzing the merchant, it has been observed that script for ${ov.attrStr} is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in ${ov.attrStr} which needs to be overruled.\n\n`;
-    commentBody += `${link('Gearloose', data.gearloose)}\n`;
-    commentBody += `${link(`Mismatches(${ov.attrStr})`, data.mismatchSS)}\n\n`;
-    commentBody += `${isMd ? `[Overruling Bug](${data.bugLink})` : `Overruling Bug(${data.bugLink || ""})`} has been raised for mismatches in ${ov.attrStr}.\n\n`;
-
-    // Paragraph 2: History Mismatch
-    commentBody += `Moreover, there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n`;
-    commentBody += `${link('Reason', data.historyReasonSS)}\n\n`;
-    commentBody += `Sample:\n${historySampleText}${aiuSS}\n`;
-    commentBody += `I will update once the overruling has been done and the script gets trusted.\n\n`;
+    commentBody += `After analyzing the merchant it has been observed that script for ${ov.attrStr} is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in ${ov.attrStr} which needs to be overruled. Also, there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link(`Mismatches(${ov.attrStr})`, data.mismatchSS)}\n\n${isMd ? `[Overruling Bug](${data.bugLink})` : `Overruling Bug(${data.bugLink || ""})`} has been raised for mismatches in ${ov.attrStr}.\n\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update once the overruling has been done and the script gets trusted for ${ov.attrStr}.\n\n`;
   } 
   
   // -------------------------------------------------------------

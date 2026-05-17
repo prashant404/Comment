@@ -6,7 +6,6 @@ const getInitialState = (): FormDataType => ({
   name: localStorage.getItem("buganizer_ldap") || "",
   attribute: [], gearloose: "", activeScenarios: [], userAgents: [], 
   overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
-  overruleOverride: false, overruleAttr: [], overruleUAs: [],
   clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }],
   historyCondition: "", historyReasonSS: "", isAIUOpted: false, historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
   historyOverride: false, historyAttr: [], historyUAs: [],
@@ -63,7 +62,7 @@ export default function App() {
     if (formData.activeScenarios.length === 0) {
       showToast("⚠️ Please select at least one scenario block"); return null;
     }
-    if ((formData.activeScenarios.includes("overrule") || formData.activeScenarios.includes("history")) && formData.userAgents.length === 0 && !formData.overruleOverride && !formData.historyOverride) {
+    if ((formData.activeScenarios.includes("overrule") || formData.activeScenarios.includes("history")) && formData.userAgents.length === 0 && !formData.historyOverride) {
       showToast("⚠️ Please select at least one User Agent!"); return null;
     }
 
@@ -114,7 +113,6 @@ export default function App() {
     setFormData((prev) => {
       let newActive = [...prev.activeScenarios];
       
-      // ✨ OR Comment Conflict Check: If activating History while OR is active, switch to DT
       if (scenario === "history" && prev.activeScenarios.includes("overrule") && prev.overruleType === "or") {
         showToast("ℹ️ Switched Overrule to DT (OR is incompatible with History)");
         return { ...prev, activeScenarios: [...newActive, scenario], overruleType: "dt" };
@@ -135,8 +133,7 @@ export default function App() {
 
   const handleChange = (field: keyof FormDataType, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
   
-  // Generic toggle for arrays
-  const toggleArrayItem = (field: "attribute" | "userAgents" | "overruleAttr" | "overruleUAs" | "historyAttr" | "historyUAs", item: string) => {
+  const toggleArrayItem = (field: "attribute" | "userAgents" | "historyAttr" | "historyUAs", item: string) => {
     setFormData((prev) => {
       const exists = prev[field].includes(item as never);
       if (exists) return { ...prev, [field]: prev[field].filter(a => a !== item) };
@@ -152,8 +149,14 @@ export default function App() {
     setFormData((p: any) => { const newArr = [...p[field]]; newArr.splice(index, 1); return { ...p, [field]: newArr }; });
   };
 
-  // Helper to get active attributes for conditions
-  const activeHistoryAttrs = formData.historyOverride && formData.historyAttr.length ? formData.historyAttr : formData.attribute;
+  // Determine which attributes apply to the History block to show correct condition buttons
+  const isHistoryActive = formData.activeScenarios.includes("history");
+  const isOverruleActive = formData.activeScenarios.includes("overrule");
+  
+  const activeHistoryAttrs = (isHistoryActive && isOverruleActive && formData.historyOverride && formData.historyAttr.length) 
+    ? formData.historyAttr 
+    : formData.attribute;
+
   const isPrice = activeHistoryAttrs.includes("price");
   const isAvail = activeHistoryAttrs.includes("availability");
 
@@ -224,7 +227,6 @@ export default function App() {
                   className={`segment-btn ${formData.overruleType === "or" ? "active-segment" : ""}`} 
                   onClick={() => {
                     handleChange("overruleType", "or");
-                    // ✨ If OR is selected, block History Mismatch!
                     if (formData.activeScenarios.includes("history")) {
                       handleChange("activeScenarios", formData.activeScenarios.filter(s => s !== "history"));
                       showToast("ℹ️ History Mismatch disabled (Incompatible with OR Comment)");
@@ -232,34 +234,6 @@ export default function App() {
                   }}
                 >OR Comment</button>
               </div>
-
-              {/* ✨ OVERRULE LOCAL OVERRIDE */}
-              <div className="input-group" style={{ marginBottom: "12px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.85rem", color: "var(--accent-primary)" }}>
-                  <input type="checkbox" checked={formData.overruleOverride} onChange={(e) => handleChange("overruleOverride", e.target.checked)} style={{ width: "16px", height: "16px", margin: 0, cursor: "pointer" }} />
-                  🛠️ Use different Attribute/User Agents for Overruling?
-                </label>
-              </div>
-
-              {formData.overruleOverride && (
-                <div style={{ padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", marginBottom: "16px", border: "1px dashed var(--accent-primary)" }}>
-                  <div className="input-group" style={{ marginBottom: "12px" }}>
-                    <label>Local Attribute</label>
-                    <div className="segmented-control">
-                      <button className={`segment-btn ${formData.overruleAttr.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("overruleAttr", "price")}>💰 Price</button>
-                      <button className={`segment-btn ${formData.overruleAttr.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("overruleAttr", "availability")}>📦 Availability</button>
-                    </div>
-                  </div>
-                  <div className="input-group">
-                    <label>Local User Agents</label>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                      {AVAILABLE_USER_AGENTS.map((ua) => (
-                        <button key={ua} className={`segment-btn ${formData.overruleUAs.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("overruleUAs", ua)} style={{ border: "1px solid var(--input-border)", background: formData.overruleUAs.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}>{ua}</button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <div className="input-group">
                 <label>Mismatches SS Link *</label>
@@ -293,32 +267,36 @@ export default function App() {
             <div className="card highlight-card">
               <h2>Block B: History Mismatches</h2>
 
-              {/* ✨ HISTORY LOCAL OVERRIDE */}
-              <div className="input-group" style={{ marginBottom: "12px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.85rem", color: "var(--accent-primary)" }}>
-                  <input type="checkbox" checked={formData.historyOverride} onChange={(e) => handleChange("historyOverride", e.target.checked)} style={{ width: "16px", height: "16px", margin: 0, cursor: "pointer" }} />
-                  🛠️ Use different Attribute/User Agents for History?
-                </label>
-              </div>
-
-              {formData.historyOverride && (
-                <div style={{ padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", marginBottom: "16px", border: "1px dashed var(--accent-primary)" }}>
+              {/* ✨ HIDES UNLESS BOTH OVERRULE AND HISTORY ARE SELECTED */}
+              {(isHistoryActive && isOverruleActive) && (
+                <>
                   <div className="input-group" style={{ marginBottom: "12px" }}>
-                    <label>Local Attribute</label>
-                    <div className="segmented-control">
-                      <button className={`segment-btn ${formData.historyAttr.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "price")}>💰 Price</button>
-                      <button className={`segment-btn ${formData.historyAttr.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "availability")}>📦 Availability</button>
-                    </div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.85rem", color: "var(--accent-primary)" }}>
+                      <input type="checkbox" checked={formData.historyOverride} onChange={(e) => handleChange("historyOverride", e.target.checked)} style={{ width: "16px", height: "16px", margin: 0, cursor: "pointer" }} />
+                      🛠️ Use different Attribute/User Agents for History?
+                    </label>
                   </div>
-                  <div className="input-group">
-                    <label>Local User Agents</label>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                      {AVAILABLE_USER_AGENTS.map((ua) => (
-                        <button key={ua} className={`segment-btn ${formData.historyUAs.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyUAs", ua)} style={{ border: "1px solid var(--input-border)", background: formData.historyUAs.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}>{ua}</button>
-                      ))}
+
+                  {formData.historyOverride && (
+                    <div style={{ padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", marginBottom: "16px", border: "1px dashed var(--accent-primary)" }}>
+                      <div className="input-group" style={{ marginBottom: "12px" }}>
+                        <label>Local Attribute</label>
+                        <div className="segmented-control">
+                          <button className={`segment-btn ${formData.historyAttr.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "price")}>💰 Price</button>
+                          <button className={`segment-btn ${formData.historyAttr.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "availability")}>📦 Availability</button>
+                        </div>
+                      </div>
+                      <div className="input-group">
+                        <label>Local User Agents</label>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                          {AVAILABLE_USER_AGENTS.map((ua) => (
+                            <button key={ua} className={`segment-btn ${formData.historyUAs.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyUAs", ua)} style={{ border: "1px solid var(--input-border)", background: formData.historyUAs.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}>{ua}</button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  )}
+                </>
               )}
               
               <div className="input-group">

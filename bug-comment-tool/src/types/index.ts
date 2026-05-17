@@ -14,39 +14,33 @@ export interface ORIssueType {
 }
 
 export interface FormDataType {
-  // Global Fields
   name: string;
   attribute: string[]; 
   gearloose: string;
-  userAgents: string[]; 
   activeScenarios: string[];
-  outputFormat: "text" | "markdown";
-
-  // Block A: Overrule
   overruleType: "dt" | "or" | "";
   mismatchSS: string;
   bugLink: string;
   extractor: string;
   dashboardSS: string;
+  
+  userAgents: string[]; 
   orIssues: ORIssueType[];
-  overruleOverride: boolean; // ✨ NEW
-  overruleAttr: string[];    // ✨ NEW
-  overruleUAs: string[];     // ✨ NEW
-
-  // Block B: History Mismatches
+  clSamples: SampleType[];
+  
+  // History Mismatches
   historyCondition: string;
   historyReasonSS: string; 
   isAIUOpted: boolean;
   historyAIUOptedSS: string;
   historySamples: SampleType[];
-  historyOverride: boolean;  // ✨ NEW
-  historyAttr: string[];     // ✨ NEW
-  historyUAs: string[];      // ✨ NEW
+  
+  // History Override (Only for 2nd Scenario)
+  historyOverride: boolean;  
+  historyAttr: string[];     
+  historyUAs: string[];      
 
-  // Block C: CL Creation
-  clSamples: SampleType[];
-
-  // Block D: Coverage
   coverageImproved: string; 
   coverageSS: string; 
+  outputFormat: "text" | "markdown";
 }
