@@ -1,10 +1,3 @@
-You (and Claude!) are absolutely right. If that closing brace gets swallowed or the `cl` block gets chained into the `else if`, the entire CL creation scenario breaks because it won't append properly when combined with other scenarios!
-
-Here is the **flawlessly matched and scoped** version of `src/utils/generateComment.ts`. I have meticulously checked every single opening and closing brace, and ensured the `CL Creation` block is completely independent so it can append to the other scenarios exactly as intended.
-
-Replace the entire contents of **`src/utils/generateComment.ts`** with this bulletproof version:
-
-```typescript
 // Removed FormDataType to completely bypass Vercel's strict cache errors
 import type { SampleType } from "../types/index";
 
@@ -65,7 +58,7 @@ export const generateComment = (rawData: any): string => {
       uaStr = "all";
       uaPlural = "user agents";
     } else if (uas.length === 1) {
-      uaStr = String(uas); 
+      uaStr = String(uas[0]);
       uaPlural = "user agent";
     } else if (uas.length > 1) {
       const last = String(uas[uas.length - 1]);
@@ -95,7 +88,7 @@ export const generateComment = (rawData: any): string => {
     return parts.join("\n"); 
   };
 
-  // ✨ EXPLICITLY TYPED ARRAY
+  // ✨ EXPLICITLY TYPED ARRAY PREVENTS TS2322
   let introTexts: string[] = []; 
   if (ov.attrs.includes("price")) introTexts.push(`script for price is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in price`);
   if (ov.attrs.includes("availability")) introTexts.push(`script for availability is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in availability`);
@@ -110,7 +103,7 @@ export const generateComment = (rawData: any): string => {
   let commentBody = "";
 
   // -------------------------------------------------------------
-  // PRIMARY SCENARIO CHAIN (Coverage, Overrule+History, Overrule, History)
+  // SCENARIO D: WAITING FOR COVERAGE (Standalone)
   // -------------------------------------------------------------
   if (activeScenarios.includes("coverage")) {
     let coverageStatement = data.coverageImproved === "improved" 
@@ -120,6 +113,9 @@ export const generateComment = (rawData: any): string => {
     commentBody = `The overruling has been carried out and script is now trusted for ${glob.attrStr}.\n${link('Gearloose', data.gearloose)}\n\n${coverageStatement}Current coverage: ${isMd ? `[SS](${data.coverageSS})` : data.coverageSS}\n\nI will update once the coverage reaches the threshold.\n\n`;
   }
 
+  // -------------------------------------------------------------
+  // CASE 4: COMBINED OVERRULE (DT ONLY) + HISTORY MISMATCH
+  // -------------------------------------------------------------
   else if (activeScenarios.includes("overrule") && activeScenarios.includes("history")) {
     let historySampleText = "";
     data.historySamples.forEach((s: any) => {
@@ -139,7 +135,10 @@ export const generateComment = (rawData: any): string => {
     commentBody += `${link('Reason', data.historyReasonSS)}\n\n`;
     commentBody += `Sample:\n${historySampleText}${aiuSS}\nI will update once the overruling has been done and the script gets trusted for ${ov.attrStr}.\n\n`;
   } 
-  
+
+  // -------------------------------------------------------------
+  // CASE 1: OVERRULE ONLY (DT or OR)
+  // -------------------------------------------------------------
   else if (activeScenarios.includes("overrule")) {
     if (data.overruleType === "dt") {
       commentBody += `After analyzing the merchant, it has been observed that ${introCombined}\n\n`;
@@ -174,6 +173,9 @@ export const generateComment = (rawData: any): string => {
     }
   }
 
+  // -------------------------------------------------------------
+  // CASE 3: HISTORY MISMATCH ONLY
+  // -------------------------------------------------------------
   else if (activeScenarios.includes("history")) {
     let historySampleText = "";
     data.historySamples.forEach((s: any) => {
@@ -187,7 +189,7 @@ export const generateComment = (rawData: any): string => {
   }
 
   // -------------------------------------------------------------
-  // INDEPENDENT SCENARIO: CL CREATION
+  // CASE 2: CL CREATION (separate if — can combine with others)
   // -------------------------------------------------------------
   if (activeScenarios.includes("cl")) {
     let clSampleText = "";
@@ -222,5 +224,3 @@ export const generateComment = (rawData: any): string => {
 
   return finalComment;
 };
-
-```
