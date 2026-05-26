@@ -18,11 +18,14 @@ export interface ORIssueType {
 export interface FormDataType {
   name: string;
   attribute: string[]; 
-  userAgents: string[]; 
+  
+  // ✨ SPLIT USER AGENTS
+  userAgentsPrice: string[]; 
+  userAgentsAvail: string[];
+  
   gearloose: string;
   activeScenarios: string[];
   
-  // Overrule specific fields
   overruleType: "dt" | "or" | "";
   mismatchPriceSS: string;
   mismatchAvailSS: string;
@@ -34,17 +37,17 @@ export interface FormDataType {
   orIssues: ORIssueType[];
   clSamples: SampleType[];
   
-  // History Mismatches
   historyCondition: string;
   historyReasonSS: string; 
   isAIUOpted: boolean;
   historyAIUOptedSS: string;
   historySamples: SampleType[];
   
-  // History Override 
+  // ✨ SPLIT HISTORY OVERRIDE USER AGENTS
   historyOverride: boolean;  
   historyAttr: string[];     
-  historyUAs: string[];      
+  historyUAsPrice: string[];      
+  historyUAsAvail: string[];
 
   coverageImproved: string; 
   coverageSS: string; 
