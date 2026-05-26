@@ -86,32 +86,32 @@ export const generateComment = (rawData: any): string => {
     return parts.join("\n"); 
   };
 
-  // ✨ DYNAMIC INTRO SENTENCE GENERATOR
+  // ✨ DYNAMIC INTRO SENTENCE GENERATOR (Non-repetitive)
   let introCombined = "";
   if (ov.attrs.includes("price") && ov.attrs.includes("availability")) {
     if (ov.sameUAs) {
-      introCombined = `script for price and availability is distrusted for ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural} due to mismatches in price and availability which needs to be overruled.`;
+      introCombined = `the script for price and availability is distrusted for the ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural} due to mismatches which need to be overruled.`;
     } else {
-      introCombined = `script for price is distrusted for ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural} due to mismatches in price and script for availability is distrusted for ${ov.availUA.uaStr} ${ov.availUA.uaPlural} due to mismatches in availability which needs to be overruled.`;
+      introCombined = `the script for price is distrusted for the ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural}, and the script for availability is distrusted for the ${ov.availUA.uaStr} ${ov.availUA.uaPlural}, due to mismatches which need to be overruled.`;
     }
   } else if (ov.attrs.includes("price")) {
-    introCombined = `script for price is distrusted for ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural} due to mismatches in price which needs to be overruled.`;
+    introCombined = `the script for price is distrusted for the ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural} due to mismatches which need to be overruled.`;
   } else if (ov.attrs.includes("availability")) {
-    introCombined = `script for availability is distrusted for ${ov.availUA.uaStr} ${ov.availUA.uaPlural} due to mismatches in availability which needs to be overruled.`;
+    introCombined = `the script for availability is distrusted for the ${ov.availUA.uaStr} ${ov.availUA.uaPlural} due to mismatches which need to be overruled.`;
   }
 
   // ✨ DYNAMIC HISTORY SENTENCE GENERATOR
   let historySentence = "";
   if (hist.attrs.includes("price") && hist.attrs.includes("availability")) {
     if (hist.sameUAs) {
-      historySentence = `there are high percentage of history mismatches for price and availability for ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} where the respective attribute present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.`;
+      historySentence = `there is a high percentage of history mismatches for price and availability for the ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} where the respective attribute present in the feed differs from what is present on the landing page leading to the "${data.historyCondition}" condition.`;
     } else {
-      historySentence = `there are high percentage of history mismatches for price for ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} and for availability for ${hist.availUA.uaStr} ${hist.availUA.uaPlural} where the attribute present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.`;
+      historySentence = `there is a high percentage of history mismatches for price for the ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} and for availability for the ${hist.availUA.uaStr} ${hist.availUA.uaPlural} where the attribute present in the feed differs from what is present on the landing page leading to the "${data.historyCondition}" condition.`;
     }
   } else if (hist.attrs.includes("price")) {
-    historySentence = `there are high percentage of history mismatches for price for ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} where price present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.`;
+    historySentence = `there is a high percentage of history mismatches for price for the ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} where price present in the feed differs from what is present on the landing page leading to the "${data.historyCondition}" condition.`;
   } else if (hist.attrs.includes("availability")) {
-    historySentence = `there are high percentage of history mismatches for availability for ${hist.availUA.uaStr} ${hist.availUA.uaPlural} where availability present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.`;
+    historySentence = `there is a high percentage of history mismatches for availability for the ${hist.availUA.uaStr} ${hist.availUA.uaPlural} where availability present in the feed differs from what is present on the landing page leading to the "${data.historyCondition}" condition.`;
   }
 
   // ✨ DYNAMIC PLEASE OVERRULE SENTENCE (OR)
@@ -153,15 +153,20 @@ export const generateComment = (rawData: any): string => {
     const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
     const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
 
-    commentBody += `After analyzing the merchant, it has been observed that ${introCombined} Also, ${historySentence}${aiuText}\n\n`;
-
+    // Block A: Overrule
+    commentBody += `After analyzing the merchant, it has been observed that ${introCombined}\n\n`;
     commentBody += `${link('Gearloose', data.gearloose)}\n`;
     if (ov.attrs.includes("price") && data.mismatchPriceSS) commentBody += `${link('Mismatches(price)', data.mismatchPriceSS)}\n`;
     if (ov.attrs.includes("availability") && data.mismatchAvailSS) commentBody += `${link('Mismatches(availability)', data.mismatchAvailSS)}\n`;
+    commentBody += `\n${isMd ? `[Overruling bug](${data.bugLink})` : `Overruling bug (${data.bugLink || ""})`} has been raised for these mismatches.\n\n`;
 
-    commentBody += `\n${isMd ? `[Overruling Bug](${data.bugLink})` : `Overruling Bug(${data.bugLink || ""})`} has been raised for mismatches in ${ov.attrStr}.\n\n`;
+    // Block B: History
+    commentBody += `Moreover, ${historySentence}${aiuText}\n\n`;
     commentBody += `${link('Reason', data.historyReasonSS)}\n\n`;
-    commentBody += `Sample:\n${historySampleText}${aiuSS}\nI will update once the overruling has been done and the script gets trusted for ${ov.attrStr}.\n\n`;
+    commentBody += `Sample:\n${historySampleText}${aiuSS}`;
+    
+    // Single Unified Ending
+    commentBody += `\nI will update the status accordingly.\n\n`;
   } 
   
   // -------------------------------------------------------------
@@ -175,7 +180,7 @@ export const generateComment = (rawData: any): string => {
       if (ov.attrs.includes("price") && data.mismatchPriceSS) commentBody += `${link('Mismatches(price)', data.mismatchPriceSS)}\n`;
       if (ov.attrs.includes("availability") && data.mismatchAvailSS) commentBody += `${link('Mismatches(availability)', data.mismatchAvailSS)}\n`;
 
-      commentBody += `\n${isMd ? `[overruling bug](${data.bugLink})` : `overruling bug (${data.bugLink})`} has been raised for the mismatches in ${ov.attrStr}. I will update once overruling has been done.\n\n`;
+      commentBody += `\n${isMd ? `[Overruling bug](${data.bugLink})` : `Overruling bug (${data.bugLink})`} has been raised for these mismatches. I will update once the overruling has been done and the script gets trusted.\n\n`;
     
     } else if (data.overruleType === "or") {
       let issuesText = "";
@@ -189,7 +194,6 @@ export const generateComment = (rawData: any): string => {
         issuesText += "\n";
       });
 
-      // ✨ CHANGED: Removed the introductory paragraph for OR case completely.
       commentBody += `${link('Gearloose', data.gearloose)}\n`;
       commentBody += `${link('Extractor', data.extractor)}\n\n`;
       commentBody += `${issuesText}`;
@@ -213,7 +217,7 @@ export const generateComment = (rawData: any): string => {
     const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
     const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
 
-    commentBody += `After analyzing the merchant it has been observed that ${historySentence}${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update the status accordingly.\n\n`;
+    commentBody += `After analyzing the merchant, it has been observed that ${historySentence}${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update the status accordingly.\n\n`;
   }
 
   // -------------------------------------------------------------
@@ -236,7 +240,7 @@ export const generateComment = (rawData: any): string => {
       commentBody += `After analyzing the merchant, few issues have been encountered:\n\n${link('Gearloose', data.gearloose)}\n\n`;
     }
 
-    commentBody += `Sample for reference:\n${clSampleText}Due to above mentioned issues the crawzall is currently not trusted for ${glob.attrStr}.\nMoreover, the script is under modification for aforementioned issues.\nI will update here once the new version of crawzall gets reflected on gearloose.\n\n`;
+    commentBody += `Sample for reference:\n${clSampleText}Due to the above mentioned issues the crawzall is currently not trusted for ${glob.attrStr}.\nMoreover, the script is under modification for aforementioned issues.\nI will update here once the new version of crawzall gets reflected on gearloose.\n\n`;
   }
 
   let finalComment = `Hi,\n\n${commentBody}Thanks,\n${data.name}`;
