@@ -15,7 +15,11 @@ export interface ORIssueType {
 
 export interface FormDataType {
   name: string;
+  
+  // ✨ THESE ARRAYS ARE WHAT VERCEL WAS MISSING!
   attribute: string[]; 
+  userAgents: string[]; 
+  
   gearloose: string;
   activeScenarios: string[];
   overruleType: "dt" | "or" | "";
@@ -24,7 +28,6 @@ export interface FormDataType {
   extractor: string;
   dashboardSS: string;
   
-  userAgents: string[]; 
   orIssues: ORIssueType[];
   clSamples: SampleType[];
   
@@ -35,7 +38,7 @@ export interface FormDataType {
   historyAIUOptedSS: string;
   historySamples: SampleType[];
   
-  // History Override (Only for 2nd Scenario)
+  // History Override 
   historyOverride: boolean;  
   historyAttr: string[];     
   historyUAs: string[];      
