@@ -7,7 +7,9 @@ export interface SampleType {
 }
 
 export interface ORIssueType {
+  attribute: string; 
   description: string;
+  mismatchSS: string; 
   rating: string;
   inspector: string;
   referenceLP?: string;
@@ -15,18 +17,19 @@ export interface ORIssueType {
 
 export interface FormDataType {
   name: string;
-  
-  // ✨ THESE ARRAYS ARE WHAT VERCEL WAS MISSING!
   attribute: string[]; 
   userAgents: string[]; 
-  
   gearloose: string;
   activeScenarios: string[];
+  
+  // Overrule specific fields
   overruleType: "dt" | "or" | "";
-  mismatchSS: string;
+  mismatchPriceSS: string;
+  mismatchAvailSS: string;
+  dashboardPriceSS: string;
+  dashboardAvailSS: string;
   bugLink: string;
   extractor: string;
-  dashboardSS: string;
   
   orIssues: ORIssueType[];
   clSamples: SampleType[];
