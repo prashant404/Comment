@@ -52,7 +52,7 @@ export const generateComment = (rawData: FormDataType): string => {
     let uaPlural = "user agents";
 
     if (uas.length === 1) {
-      uaStr = uas;
+      uaStr = uas[0]; // ✅ Fixed: was `uas` (string[]), now `uas[0]` (string)
       uaPlural = "user agent";
     } else if (uas.length > 1) {
       const last = uas[uas.length - 1];
