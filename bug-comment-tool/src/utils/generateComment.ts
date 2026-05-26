@@ -189,7 +189,7 @@ export const generateComment = (rawData: any): string => {
         issuesText += "\n";
       });
 
-      commentBody += `After analyzing the merchant, it has been observed that ${introCombined}\n\n`;
+      // ✨ CHANGED: Removed the introductory paragraph for OR case completely.
       commentBody += `${link('Gearloose', data.gearloose)}\n`;
       commentBody += `${link('Extractor', data.extractor)}\n\n`;
       commentBody += `${issuesText}`;
