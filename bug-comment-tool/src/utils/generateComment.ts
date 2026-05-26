@@ -1,3 +1,10 @@
+You (and Claude!) are absolutely right. If that closing brace gets swallowed or the `cl` block gets chained into the `else if`, the entire CL creation scenario breaks because it won't append properly when combined with other scenarios!
+
+Here is the **flawlessly matched and scoped** version of `src/utils/generateComment.ts`. I have meticulously checked every single opening and closing brace, and ensured the `CL Creation` block is completely independent so it can append to the other scenarios exactly as intended.
+
+Replace the entire contents of **`src/utils/generateComment.ts`** with this bulletproof version:
+
+```typescript
 // Removed FormDataType to completely bypass Vercel's strict cache errors
 import type { SampleType } from "../types/index";
 
@@ -88,7 +95,7 @@ export const generateComment = (rawData: any): string => {
     return parts.join("\n"); 
   };
 
-  // ✨ EXPLICITLY TYPED ARRAY PREVENTS TS2322
+  // ✨ EXPLICITLY TYPED ARRAY
   let introTexts: string[] = []; 
   if (ov.attrs.includes("price")) introTexts.push(`script for price is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in price`);
   if (ov.attrs.includes("availability")) introTexts.push(`script for availability is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in availability`);
@@ -102,6 +109,9 @@ export const generateComment = (rawData: any): string => {
 
   let commentBody = "";
 
+  // -------------------------------------------------------------
+  // PRIMARY SCENARIO CHAIN (Coverage, Overrule+History, Overrule, History)
+  // -------------------------------------------------------------
   if (activeScenarios.includes("coverage")) {
     let coverageStatement = data.coverageImproved === "improved" 
       ? "Moreover, the coverage has improved to some extent but not reached the threshold.\n" 
@@ -161,3 +171,56 @@ export const generateComment = (rawData: any): string => {
       if (ov.attrs.includes("availability") && data.dashboardAvailSS) commentBody += `${link('Dashboard(Availability)', data.dashboardAvailSS)}\n`;
 
       commentBody += `\nPlease overrule similar mismatches for ${ov.uaStr} ${ov.uaPlural}.\n\n`;
+    }
+  }
+
+  else if (activeScenarios.includes("history")) {
+    let historySampleText = "";
+    data.historySamples.forEach((s: any) => {
+      if (s.cds || s.lp || s.debug) historySampleText += `${formatSampleLinks(s)}\n`;
+    });
+
+    const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
+    const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
+
+    commentBody += `After analyzing the merchant it has been observed that there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update the status accordingly.\n\n`;
+  }
+
+  // -------------------------------------------------------------
+  // INDEPENDENT SCENARIO: CL CREATION
+  // -------------------------------------------------------------
+  if (activeScenarios.includes("cl")) {
+    let clSampleText = "";
+    data.clSamples.forEach((s: any) => {
+      if (s.cds || s.lp || s.debug) {
+        clSampleText += `${formatSampleLinks(s)}\n`;
+        if (s.rating && s.rating.trim() !== "") clSampleText += `Rating: ${s.rating}\n`;
+        if (s.inspector && s.inspector.trim() !== "") clSampleText += `Inspector: ${s.inspector}\n`;
+        clSampleText += `\n`;
+      }
+    });
+
+    if (commentBody !== "") {
+      commentBody += `Furthermore, regarding CL Creation:\n\n`;
+    } else {
+      commentBody += `After analyzing the merchant, few issues have been encountered:\n\n${link('Gearloose', data.gearloose)}\n\n`;
+    }
+
+    commentBody += `Sample for reference:\n${clSampleText}Due to above mentioned issues the crawzall is currently not trusted for ${glob.attrStr}.\nMoreover, the script is under modification for aforementioned issues.\nI will update here once the new version of crawzall gets reflected on gearloose.\n\n`;
+  }
+
+  let finalComment = `Hi,\n\n${commentBody}Thanks,\n${data.name}`;
+
+  if (isMd) {
+    finalComment = finalComment.split('\n').map((line: string) => {
+      if (line.trim().length > 0 && !line.trim().endsWith('\\')) {
+        return `${line.trimEnd()} \\`;
+      }
+      return line;
+    }).join('\n');
+  }
+
+  return finalComment;
+};
+
+```
