@@ -50,6 +50,7 @@ export const generateComment = (rawData: FormDataType): string => {
     let uaStr = "";
     let uaPlural = "user agents";
 
+    // ✨ ALL USER AGENTS LOGIC
     if (uas.includes("all")) {
       uaStr = "all";
       uaPlural = "user agents";
@@ -121,7 +122,7 @@ export const generateComment = (rawData: FormDataType): string => {
     const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
     const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
 
-    commentBody += `After analyzing the merchant, it has been observed that ${introCombined} Also, there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${(data as any).historyCondition}" condition.${aiuText}\n\n`;
+    commentBody += `After analyzing the merchant it has been observed that ${introCombined} Also, there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${(data as any).historyCondition}" condition.${aiuText}\n\n`;
 
     commentBody += `${link('Gearloose', data.gearloose)}\n`;
     if (ov.attrs.includes("price") && data.mismatchPriceSS) commentBody += `${link('Mismatches(price)', data.mismatchPriceSS)}\n`;
@@ -143,12 +144,13 @@ export const generateComment = (rawData: FormDataType): string => {
       if (ov.attrs.includes("price") && data.mismatchPriceSS) commentBody += `${link('Mismatches(price)', data.mismatchPriceSS)}\n`;
       if (ov.attrs.includes("availability") && data.mismatchAvailSS) commentBody += `${link('Mismatches(availability)', data.mismatchAvailSS)}\n`;
 
-      commentBody += `\n${isMd ? `[Overruling Bug](${data.bugLink})` : `Overruling Bug(${data.bugLink || ""})`} has been raised for the mismatches in ${ov.attrStr}. I will update once overruling has been done.\n\n`;
+      commentBody += `\n${isMd ? `[overruling bug](${data.bugLink})` : `overruling bug (${data.bugLink})`} has been raised for the mismatches in ${ov.attrStr}. I will update once overruling has been done.\n\n`;
     
     } else if (data.overruleType === "or") {
       let issuesText = "";
       data.orIssues.forEach((issue) => {
-        const issueAttrLbl = issue.attribute ? `(${issue.attribute})` : "";
+        // ✨ DYNAMICALLY SHOW ATTRIBUTE IN ISSUE IF SELECTED
+        const issueAttrLbl = issue.attribute ? `(${issue.attribute})` : (ov.attrs.length === 1 ? `(${ov.attrs})` : "");
         issuesText += `Issue: ${issue.description}\n`;
         if (issue.mismatchSS) issuesText += `${link(`Mismatches${issueAttrLbl}`, issue.mismatchSS)}\n`;
         if (issue.rating && issue.rating.trim() !== "") issuesText += `Rating: ${issue.rating}\n`;
@@ -162,6 +164,7 @@ export const generateComment = (rawData: FormDataType): string => {
       commentBody += `${link('Extractor', data.extractor)}\n\n`;
       commentBody += `${issuesText}`;
 
+      // ✨ DASHBOARDS AT THE BOTTOM
       if (ov.attrs.includes("price") && data.dashboardPriceSS) commentBody += `${link('Dashboard(Price)', data.dashboardPriceSS)}\n`;
       if (ov.attrs.includes("availability") && data.dashboardAvailSS) commentBody += `${link('Dashboard(Availability)', data.dashboardAvailSS)}\n`;
 
