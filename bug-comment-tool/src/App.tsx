@@ -5,7 +5,9 @@ import type { FormDataType } from "./types/index";
 const getInitialState = (): FormDataType => ({
   name: localStorage.getItem("buganizer_ldap") || "",
   attribute: [], gearloose: "", activeScenarios: [], userAgents: [], 
-  overruleType: "", mismatchSS: "", bugLink: "", extractor: "", dashboardSS: "", orIssues: [{ description: "", rating: "", inspector: "", referenceLP: "" }],
+  overruleType: "", bugLink: "", extractor: "", 
+  mismatchPriceSS: "", mismatchAvailSS: "", dashboardPriceSS: "", dashboardAvailSS: "",
+  orIssues: [{ attribute: "", description: "", mismatchSS: "", rating: "", inspector: "", referenceLP: "" }],
   clSamples: [{ cds: "", lp: "", debug: "", rating: "", inspector: "" }],
   historyCondition: "", historyReasonSS: "", isAIUOpted: false, historyAIUOptedSS: "", historySamples: [{ cds: "", lp: "", debug: "" }],
   historyOverride: false, historyAttr: [], historyUAs: [],
@@ -75,7 +77,23 @@ export default function App() {
 
     if (!isValidLink(formData.gearloose)) { showToast("❌ Invalid Gearloose Link!"); return null; }
     
-    if (formData.activeScenarios.includes("overrule") && !isValidLink(formData.mismatchSS)) { showToast("❌ Invalid Mismatch SS Link!"); return null; }
+    // ✨ VALIDATING THE SPLIT OVERRULE LINKS
+    if (formData.activeScenarios.includes("overrule")) {
+      const isPrice = formData.attribute.includes("price");
+      const isAvail = formData.attribute.includes("availability");
+      
+      if (formData.overruleType === "dt") {
+        if (isPrice && !isValidLink(formData.mismatchPriceSS)) { showToast("❌ Invalid Price Mismatch Link!"); return null; }
+        if (isAvail && !isValidLink(formData.mismatchAvailSS)) { showToast("❌ Invalid Availability Mismatch Link!"); return null; }
+      }
+      if (formData.overruleType === "or") {
+        if (isPrice && !isValidLink(formData.dashboardPriceSS)) { showToast("❌ Invalid Price Dashboard Link!"); return null; }
+        if (isAvail && !isValidLink(formData.dashboardAvailSS)) { showToast("❌ Invalid Availability Dashboard Link!"); return null; }
+        for (let issue of formData.orIssues) {
+          if (!isValidLink(issue.mismatchSS)) { showToast("❌ Invalid Mismatch SS in Issues!"); return null; }
+        }
+      }
+    }
     
     if (formData.activeScenarios.includes("history")) {
       if (!formData.historyCondition) { showToast("⚠️ Please select a History Condition!"); return null; }
@@ -135,9 +153,19 @@ export default function App() {
   
   const toggleArrayItem = (field: "attribute" | "userAgents" | "historyAttr" | "historyUAs", item: string) => {
     setFormData((prev) => {
-      const exists = prev[field].includes(item as never);
-      if (exists) return { ...prev, [field]: prev[field].filter(a => a !== item) };
-      return { ...prev, [field]: [...prev[field], item] };
+      if (field === "userAgents" || field === "historyUAs") {
+        let current = [...(prev[field] as string[])];
+        if (item === "all") {
+          return { ...prev, [field]: current.includes("all") ? [] : ["all"] };
+        }
+        current = current.filter(a => a !== "all");
+        if (current.includes(item)) return { ...prev, [field]: current.filter(a => a !== item) };
+        return { ...prev, [field]: [...current, item] };
+      } else {
+        const exists = prev[field].includes(item as never);
+        if (exists) return { ...prev, [field]: prev[field].filter(a => a !== item) };
+        return { ...prev, [field]: [...prev[field], item] };
+      }
     });
   };
 
@@ -149,16 +177,16 @@ export default function App() {
     setFormData((p: any) => { const newArr = [...p[field]]; newArr.splice(index, 1); return { ...p, [field]: newArr }; });
   };
 
-  // Determine which attributes apply to the History block to show correct condition buttons
   const isHistoryActive = formData.activeScenarios.includes("history");
   const isOverruleActive = formData.activeScenarios.includes("overrule");
-  
   const activeHistoryAttrs = (isHistoryActive && isOverruleActive && formData.historyOverride && formData.historyAttr.length) 
-    ? formData.historyAttr 
-    : formData.attribute;
+    ? formData.historyAttr : formData.attribute;
 
-  const isPrice = activeHistoryAttrs.includes("price");
-  const isAvail = activeHistoryAttrs.includes("availability");
+  const isPrice = formData.attribute.includes("price");
+  const isAvail = formData.attribute.includes("availability");
+
+  const isHistPrice = activeHistoryAttrs.includes("price");
+  const isHistAvail = activeHistoryAttrs.includes("availability");
 
   return (
     <div className="app-wrapper">
@@ -187,16 +215,21 @@ export default function App() {
             <div className="input-group">
               <label>Attribute *</label>
               <div className="segmented-control">
-                <button className={`segment-btn ${formData.attribute.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "price")}>💰 Price</button>
-                <button className={`segment-btn ${formData.attribute.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "availability")}>📦 Availability</button>
+                <button className={`segment-btn ${isPrice ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "price")}>💰 Price</button>
+                <button className={`segment-btn ${isAvail ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "availability")}>📦 Availability</button>
               </div>
             </div>
 
             <div className="input-group">
               <label>User Agents *</label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <button 
+                  className={`segment-btn ${formData.userAgents.includes("all") ? "active-segment" : ""}`} 
+                  onClick={() => toggleArrayItem("userAgents", "all")} 
+                  style={{ gridColumn: "span 2", border: "1px solid var(--input-border)", background: formData.userAgents.includes("all") ? "var(--segment-active-bg)" : "var(--input-bg)" }}
+                >✨ All User Agents</button>
                 {AVAILABLE_USER_AGENTS.map((ua) => (
-                  <button key={ua} className={`segment-btn ${formData.userAgents.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgents", ua)} style={{ border: "1px solid var(--input-border)", background: formData.userAgents.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}>{ua}</button>
+                  <button key={ua} className={`segment-btn ${formData.userAgents.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgents", ua)} style={{ border: "1px solid var(--input-border)", background: formData.userAgents.includes(ua) ? "var(--segment-active-bg)" : "var(--input-bg)" }}>{ua}</button>
                 ))}
               </div>
             </div>
@@ -235,29 +268,66 @@ export default function App() {
                 >OR Comment</button>
               </div>
 
-              <div className="input-group">
-                <label>Mismatches SS Link *</label>
-                <input placeholder="https://..." value={formData.mismatchSS} onChange={(e) => handleChange("mismatchSS", e.target.value)} />
-              </div>
+              {/* ✨ DT MODE STRICTLY SPLITS MISMATCH LINKS */}
               {formData.overruleType === "dt" && (
-                <div className="input-group"><label>OR Bug Link *</label><input placeholder="https://..." value={formData.bugLink} onChange={(e) => handleChange("bugLink", e.target.value)} /></div>
+                <>
+                  {isPrice && (
+                    <div className="input-group">
+                      <label>Mismatches SS Link (Price) *</label>
+                      <input placeholder="https://..." value={formData.mismatchPriceSS} onChange={(e) => handleChange("mismatchPriceSS", e.target.value)} />
+                    </div>
+                  )}
+                  {isAvail && (
+                    <div className="input-group">
+                      <label>Mismatches SS Link (Availability) *</label>
+                      <input placeholder="https://..." value={formData.mismatchAvailSS} onChange={(e) => handleChange("mismatchAvailSS", e.target.value)} />
+                    </div>
+                  )}
+                  <div className="input-group" style={{marginTop: "8px"}}><label>OR Bug Link *</label><input placeholder="https://..." value={formData.bugLink} onChange={(e) => handleChange("bugLink", e.target.value)} /></div>
+                </>
               )}
+
+              {/* ✨ OR MODE: ISSUES & DASHBOARDS */}
               {formData.overruleType === "or" && (
                 <>
                   <div className="input-group"><label>Extractor Link *</label><input placeholder="https://..." value={formData.extractor} onChange={(e) => handleChange("extractor", e.target.value)} /></div>
-                  <div className="input-group"><label>Dashboard SS Link *</label><input placeholder="https://..." value={formData.dashboardSS} onChange={(e) => handleChange("dashboardSS", e.target.value)} /></div>
                   <div className="divider-line"></div>
                   <h3>Issues</h3>
                   {formData.orIssues.map((issue, i) => (
                     <div key={i} className="sample-block">
                       <div className="sample-header"><strong>Issue {i + 1}</strong>{formData.orIssues.length > 1 && <button className="danger-text" onClick={() => removeArrayItem("orIssues", i)}>Remove</button>}</div>
+                      
+                      {/* Only show specific attribute toggle if BOTH are selected globally */}
+                      {(isPrice && isAvail) && (
+                        <div className="segmented-control" style={{marginBottom: "6px"}}>
+                          <button className={`segment-btn ${issue.attribute === "price" ? "active-segment" : ""}`} onClick={() => updateArrayItem("orIssues", i, "attribute", "price")}>💰 Price</button>
+                          <button className={`segment-btn ${issue.attribute === "availability" ? "active-segment" : ""}`} onClick={() => updateArrayItem("orIssues", i, "attribute", "availability")}>📦 Availability</button>
+                        </div>
+                      )}
+
                       <textarea placeholder="Issue Description *" value={issue.description} onChange={(e) => updateArrayItem("orIssues", i, "description", e.target.value)} />
+                      <input placeholder={`Mismatches SS ${issue.attribute ? `(${issue.attribute})` : (isPrice ? "(price)" : isAvail ? "(availability)" : "")} *`} value={issue.mismatchSS} onChange={(e) => updateArrayItem("orIssues", i, "mismatchSS", e.target.value)} />
                       <input placeholder="Rating" value={issue.rating} onChange={(e) => updateArrayItem("orIssues", i, "rating", e.target.value)} />
                       <input placeholder="Inspector" value={issue.inspector} onChange={(e) => updateArrayItem("orIssues", i, "inspector", e.target.value)} />
                       <input placeholder="Reference LP (optional)" value={issue.referenceLP} onChange={(e) => updateArrayItem("orIssues", i, "referenceLP", e.target.value)} />
                     </div>
                   ))}
-                  <button className="secondary outline-btn" onClick={() => addArrayItem("orIssues", { description: "", rating: "", inspector: "", referenceLP: "" })}>+ Add Issue</button>
+                  <button className="secondary outline-btn" onClick={() => addArrayItem("orIssues", { attribute: "", description: "", mismatchSS: "", rating: "", inspector: "", referenceLP: "" })}>+ Add Issue</button>
+                  <div className="divider-line" style={{marginTop:"12px"}}></div>
+                  
+                  {/* SPLIT DASHBOARD LINKS */}
+                  {isPrice && (
+                    <div className="input-group">
+                      <label>Dashboard SS Link (Price) *</label>
+                      <input placeholder="https://..." value={formData.dashboardPriceSS} onChange={(e) => handleChange("dashboardPriceSS", e.target.value)} />
+                    </div>
+                  )}
+                  {isAvail && (
+                    <div className="input-group">
+                      <label>Dashboard SS Link (Availability) *</label>
+                      <input placeholder="https://..." value={formData.dashboardAvailSS} onChange={(e) => handleChange("dashboardAvailSS", e.target.value)} />
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -267,7 +337,6 @@ export default function App() {
             <div className="card highlight-card">
               <h2>Block B: History Mismatches</h2>
 
-              {/* ✨ HIDES UNLESS BOTH OVERRULE AND HISTORY ARE SELECTED */}
               {(isHistoryActive && isOverruleActive) && (
                 <>
                   <div className="input-group" style={{ marginBottom: "12px" }}>
@@ -289,8 +358,13 @@ export default function App() {
                       <div className="input-group">
                         <label>Local User Agents</label>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                          <button 
+                            className={`segment-btn ${formData.historyUAs.includes("all") ? "active-segment" : ""}`} 
+                            onClick={() => toggleArrayItem("historyUAs", "all")} 
+                            style={{ gridColumn: "span 2", border: "1px solid var(--input-border)", background: formData.historyUAs.includes("all") ? "var(--segment-active-bg)" : "var(--input-bg)" }}
+                          >✨ All User Agents</button>
                           {AVAILABLE_USER_AGENTS.map((ua) => (
-                            <button key={ua} className={`segment-btn ${formData.historyUAs.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyUAs", ua)} style={{ border: "1px solid var(--input-border)", background: formData.historyUAs.includes(ua) ? "var(--segment-active)" : "var(--input-bg)" }}>{ua}</button>
+                            <button key={ua} className={`segment-btn ${formData.historyUAs.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyUAs", ua)} style={{ border: "1px solid var(--input-border)", background: formData.historyUAs.includes(ua) ? "var(--segment-active-bg)" : "var(--input-bg)" }}>{ua}</button>
                           ))}
                         </div>
                       </div>
@@ -301,16 +375,16 @@ export default function App() {
               
               <div className="input-group">
                 <label>History Condition *</label>
-                {(isPrice || isAvail) ? (
+                {(isHistPrice || isHistAvail) ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {isPrice && (
+                    {isHistPrice && (
                       <>
-                        <button className={`segment-btn ${formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED</button>
-                        <button className={`segment-btn ${formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_PRICE_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>BASE_PRICE_DISTRUST_THRESHOLD_REACHED</button>
+                        <button className={`segment-btn ${formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED" ? "var(--segment-active-bg)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>BASE_INSTEAD_OF_SALE_THRESHOLD_REACHED</button>
+                        <button className={`segment-btn ${formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "BASE_PRICE_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "BASE_PRICE_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active-bg)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>BASE_PRICE_DISTRUST_THRESHOLD_REACHED</button>
                       </  >
                     )}
-                    {isAvail && (
-                      <button className={`segment-btn ${formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "AVAILABILITY_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>AVAILABILITY_DISTRUST_THRESHOLD_REACHED</button>
+                    {isHistAvail && (
+                      <button className={`segment-btn ${formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "AVAILABILITY_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active-bg)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>AVAILABILITY_DISTRUST_THRESHOLD_REACHED</button>
                     )}
                   </div>
                 ) : (<div className="empty-state" style={{ padding: "10px", fontSize: "0.85rem", color: "#f59e0b" }}>⚠️ Please select an Attribute above!</div>)}
