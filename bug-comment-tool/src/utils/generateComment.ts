@@ -1,4 +1,3 @@
-// Removed FormDataType to completely bypass Vercel's strict cache errors
 import type { SampleType } from "../types/index";
 
 const formatURL = (url?: string): string => {
@@ -11,7 +10,7 @@ const formatURL = (url?: string): string => {
   return trimmed;
 };
 
-// ✨ FORCING `any` OVERRIDE TO SECURE DEPLOYMENT
+// ✨ VERCEL FAILSAFE: FORCE ANY
 export const generateComment = (rawData: any): string => {
   
   const data: any = {
@@ -36,39 +35,38 @@ export const generateComment = (rawData: any): string => {
   const isAIUOpted = data.isAIUOpted;
   const isMd = outputFormat === "markdown";
 
-  // 🛡️ VERCEL FAILSAFE ENGINE
+  // 🛡️ DYNAMIC SCENARIO ENGINE
   const getScenarioDetails = (scenario: 'overrule' | 'history' | 'global') => {
     let attrs: string[] = Array.isArray(data.attribute) ? data.attribute : [data.attribute].filter(Boolean);
-    let uas: string[] = Array.isArray(data.userAgents) ? data.userAgents : [data.userAgents].filter(Boolean);
+    let uasPrice: string[] = Array.isArray(data.userAgentsPrice) ? data.userAgentsPrice : [];
+    let uasAvail: string[] = Array.isArray(data.userAgentsAvail) ? data.userAgentsAvail : [];
 
     const historyOverride = data.historyOverride;
     const historyAttr: string[] = data.historyAttr || [];
-    const historyUAs: string[] = data.historyUAs || [];
 
     if (scenario === 'history' && historyOverride && activeScenarios.includes("overrule") && activeScenarios.includes("history")) {
       attrs = historyAttr.length ? historyAttr : attrs;
-      uas = historyUAs.length ? historyUAs : uas;
+      uasPrice = data.historyUAsPrice || [];
+      uasAvail = data.historyUAsAvail || [];
     }
 
+    const formatUA = (uas: string[]) => {
+      if (uas.includes("all")) return { uaStr: "all", uaPlural: "user agents" };
+      if (uas.length === 1) return { uaStr: String(uas), uaPlural: "user agent" };
+      if (uas.length > 1) {
+        const last = String(uas[uas.length - 1]);
+        const rest = uas.slice(0, -1).map(String).join(", ");
+        return { uaStr: `${rest} and ${last}`, uaPlural: "user agents" };
+      }
+      return { uaStr: "_______", uaPlural: "user agents" };
+    };
+
+    const priceUA = formatUA(uasPrice);
+    const availUA = formatUA(uasAvail);
     const attrStr = attrs.join(" and ") || "_______";
-    let uaStr = "";
-    let uaPlural = "user agents";
+    const sameUAs = JSON.stringify([...uasPrice].sort()) === JSON.stringify([...uasAvail].sort());
 
-    if (uas.includes("all")) {
-      uaStr = "all";
-      uaPlural = "user agents";
-    } else if (uas.length === 1) {
-      uaStr = String(uas[0]);
-      uaPlural = "user agent";
-    } else if (uas.length > 1) {
-      const last = String(uas[uas.length - 1]);
-      const rest = uas.slice(0, -1).map(String).join(", ");
-      uaStr = `${rest} and ${last}`;
-    } else {
-      uaStr = "_______";
-    }
-
-    return { attrs, attrStr, uaStr, uaPlural };
+    return { attrs, attrStr, uasPrice, uasAvail, priceUA, availUA, sameUAs };
   };
 
   const ov = getScenarioDetails('overrule');
@@ -88,16 +86,46 @@ export const generateComment = (rawData: any): string => {
     return parts.join("\n"); 
   };
 
-  // ✨ EXPLICITLY TYPED ARRAY PREVENTS TS2322
-  let introTexts: string[] = []; 
-  if (ov.attrs.includes("price")) introTexts.push(`script for price is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in price`);
-  if (ov.attrs.includes("availability")) introTexts.push(`script for availability is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in availability`);
-  
+  // ✨ DYNAMIC INTRO SENTENCE GENERATOR
   let introCombined = "";
-  if (introTexts.length > 0) {
-    introCombined = introTexts.join(" and ") + " which needs to be overruled.";
+  if (ov.attrs.includes("price") && ov.attrs.includes("availability")) {
+    if (ov.sameUAs) {
+      introCombined = `script for price and availability is distrusted for ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural} due to mismatches in price and availability which needs to be overruled.`;
+    } else {
+      introCombined = `script for price is distrusted for ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural} due to mismatches in price and script for availability is distrusted for ${ov.availUA.uaStr} ${ov.availUA.uaPlural} due to mismatches in availability which needs to be overruled.`;
+    }
+  } else if (ov.attrs.includes("price")) {
+    introCombined = `script for price is distrusted for ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural} due to mismatches in price which needs to be overruled.`;
+  } else if (ov.attrs.includes("availability")) {
+    introCombined = `script for availability is distrusted for ${ov.availUA.uaStr} ${ov.availUA.uaPlural} due to mismatches in availability which needs to be overruled.`;
+  }
+
+  // ✨ DYNAMIC HISTORY SENTENCE GENERATOR
+  let historySentence = "";
+  if (hist.attrs.includes("price") && hist.attrs.includes("availability")) {
+    if (hist.sameUAs) {
+      historySentence = `there are high percentage of history mismatches for price and availability for ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} where the respective attribute present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.`;
+    } else {
+      historySentence = `there are high percentage of history mismatches for price for ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} and for availability for ${hist.availUA.uaStr} ${hist.availUA.uaPlural} where the attribute present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.`;
+    }
+  } else if (hist.attrs.includes("price")) {
+    historySentence = `there are high percentage of history mismatches for price for ${hist.priceUA.uaStr} ${hist.priceUA.uaPlural} where price present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.`;
+  } else if (hist.attrs.includes("availability")) {
+    historySentence = `there are high percentage of history mismatches for availability for ${hist.availUA.uaStr} ${hist.availUA.uaPlural} where availability present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.`;
+  }
+
+  // ✨ DYNAMIC PLEASE OVERRULE SENTENCE (OR)
+  let pleaseOverrule = "";
+  if (ov.attrs.includes("price") && ov.attrs.includes("availability")) {
+    if (ov.sameUAs) {
+      pleaseOverrule = `Please overrule similar mismatches for ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural}.`;
+    } else {
+      pleaseOverrule = `Please overrule similar mismatches for price (${ov.priceUA.uaStr} ${ov.priceUA.uaPlural}) and availability (${ov.availUA.uaStr} ${ov.availUA.uaPlural}).`;
+    }
+  } else if (ov.attrs.includes("price")) {
+    pleaseOverrule = `Please overrule similar mismatches for ${ov.priceUA.uaStr} ${ov.priceUA.uaPlural}.`;
   } else {
-    introCombined = `script for ${ov.attrStr} is distrusted for ${ov.uaStr} ${ov.uaPlural} due to mismatches in ${ov.attrStr} which needs to be overruled.`;
+    pleaseOverrule = `Please overrule similar mismatches for ${ov.availUA.uaStr} ${ov.availUA.uaPlural}.`;
   }
 
   let commentBody = "";
@@ -125,7 +153,7 @@ export const generateComment = (rawData: any): string => {
     const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
     const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
 
-    commentBody += `After analyzing the merchant, it has been observed that ${introCombined} Also, there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n`;
+    commentBody += `After analyzing the merchant, it has been observed that ${introCombined} Also, ${historySentence}${aiuText}\n\n`;
 
     commentBody += `${link('Gearloose', data.gearloose)}\n`;
     if (ov.attrs.includes("price") && data.mismatchPriceSS) commentBody += `${link('Mismatches(price)', data.mismatchPriceSS)}\n`;
@@ -135,7 +163,7 @@ export const generateComment = (rawData: any): string => {
     commentBody += `${link('Reason', data.historyReasonSS)}\n\n`;
     commentBody += `Sample:\n${historySampleText}${aiuSS}\nI will update once the overruling has been done and the script gets trusted for ${ov.attrStr}.\n\n`;
   } 
-
+  
   // -------------------------------------------------------------
   // CASE 1: OVERRULE ONLY (DT or OR)
   // -------------------------------------------------------------
@@ -169,7 +197,7 @@ export const generateComment = (rawData: any): string => {
       if (ov.attrs.includes("price") && data.dashboardPriceSS) commentBody += `${link('Dashboard(Price)', data.dashboardPriceSS)}\n`;
       if (ov.attrs.includes("availability") && data.dashboardAvailSS) commentBody += `${link('Dashboard(Availability)', data.dashboardAvailSS)}\n`;
 
-      commentBody += `\nPlease overrule similar mismatches for ${ov.uaStr} ${ov.uaPlural}.\n\n`;
+      commentBody += `\n${pleaseOverrule}\n\n`;
     }
   }
 
@@ -185,11 +213,11 @@ export const generateComment = (rawData: any): string => {
     const aiuText = isAIUOpted ? ` However AIU is opted for ${hist.attrStr} and feed will get updated.` : "";
     const aiuSS = isAIUOpted ? `${link('SS(Opted)', data.historyAIUOptedSS)}\n` : "";
 
-    commentBody += `After analyzing the merchant it has been observed that there are high percentage of history mismatches for ${hist.attrStr} for ${hist.uaStr} ${hist.uaPlural} where ${hist.attrStr} present in feed differs from what is present on the landing page leading to "${data.historyCondition}" condition.${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update the status accordingly.\n\n`;
+    commentBody += `After analyzing the merchant it has been observed that ${historySentence}${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update the status accordingly.\n\n`;
   }
 
   // -------------------------------------------------------------
-  // CASE 2: CL CREATION (separate if — can combine with others)
+  // INDEPENDENT SCENARIO: CL CREATION
   // -------------------------------------------------------------
   if (activeScenarios.includes("cl")) {
     let clSampleText = "";
