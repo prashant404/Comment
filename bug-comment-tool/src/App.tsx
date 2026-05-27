@@ -55,15 +55,15 @@ export default function App() {
       return newHist;
     });
     if (expandedIndex === indexToDelete) setExpandedIndex(null);
-    showToast("🗑️ History item deleted!");
+    showToast("History item deleted!");
   };
 
   const handleGenerate = useCallback(() => {
     if (!formData.name || formData.attribute.length === 0 || !formData.gearloose) {
-      showToast("⚠️ Please fill Global Fields (Name, Attribute, Main Gearloose)"); return null;
+      showToast("Please fill Global Fields (Name, Attribute, Main Gearloose)"); return null;
     }
     if (formData.activeScenarios.length === 0) {
-      showToast("⚠️ Please select at least one scenario block"); return null;
+      showToast("Please select at least one scenario block"); return null;
     }
 
     const isPrice = formData.attribute.includes("price");
@@ -71,8 +71,8 @@ export default function App() {
 
     if (formData.activeScenarios.includes("overrule") || formData.activeScenarios.includes("history")) {
       if (!formData.historyOverride) {
-        if (isPrice && formData.userAgentsPrice.length === 0) { showToast("⚠️ Select User Agents for Price!"); return null; }
-        if (isAvail && formData.userAgentsAvail.length === 0) { showToast("⚠️ Select User Agents for Availability!"); return null; }
+        if (isPrice && formData.userAgentsPrice.length === 0) { showToast("Select User Agents for Price!"); return null; }
+        if (isAvail && formData.userAgentsAvail.length === 0) { showToast("Select User Agents for Availability!"); return null; }
       }
     }
 
@@ -83,31 +83,31 @@ export default function App() {
       return clean.includes("."); 
     };
 
-    if (!isValidLink(formData.gearloose)) { showToast("❌ Invalid Gearloose Link!"); return null; }
+    if (!isValidLink(formData.gearloose)) { showToast("Invalid Gearloose Link!"); return null; }
     
     if (formData.activeScenarios.includes("overrule")) {
       if (formData.overruleType === "dt") {
-        if (isPrice && !isValidLink(formData.mismatchPriceSS)) { showToast("❌ Invalid Price Mismatch Link!"); return null; }
-        if (isAvail && !isValidLink(formData.mismatchAvailSS)) { showToast("❌ Invalid Availability Mismatch Link!"); return null; }
+        if (isPrice && !isValidLink(formData.mismatchPriceSS)) { showToast("Invalid Price Mismatch Link!"); return null; }
+        if (isAvail && !isValidLink(formData.mismatchAvailSS)) { showToast("Invalid Availability Mismatch Link!"); return null; }
       }
       if (formData.overruleType === "or") {
-        if (isPrice && !isValidLink(formData.dashboardPriceSS)) { showToast("❌ Invalid Price Dashboard Link!"); return null; }
-        if (isAvail && !isValidLink(formData.dashboardAvailSS)) { showToast("❌ Invalid Availability Dashboard Link!"); return null; }
+        if (isPrice && !isValidLink(formData.dashboardPriceSS)) { showToast("Invalid Price Dashboard Link!"); return null; }
+        if (isAvail && !isValidLink(formData.dashboardAvailSS)) { showToast("Invalid Availability Dashboard Link!"); return null; }
         for (let issue of formData.orIssues) {
-          if (!isValidLink(issue.mismatchSS)) { showToast("❌ Invalid Mismatch SS in Issues!"); return null; }
+          if (!isValidLink(issue.mismatchSS)) { showToast("Invalid Mismatch SS in Issues!"); return null; }
         }
       }
     }
     
     if (formData.activeScenarios.includes("history")) {
-      if (!formData.historyCondition) { showToast("⚠️ Please select a History Condition!"); return null; }
-      if (!isValidLink(formData.historyReasonSS)) { showToast("❌ Invalid Reason SS Link!"); return null; }
-      if (formData.isAIUOpted && !isValidLink(formData.historyAIUOptedSS)) { showToast("❌ Invalid AIU Opted SS Link!"); return null; }
+      if (!formData.historyCondition) { showToast("Please select a History Condition!"); return null; }
+      if (!isValidLink(formData.historyReasonSS)) { showToast("Invalid Reason SS Link!"); return null; }
+      if (formData.isAIUOpted && !isValidLink(formData.historyAIUOptedSS)) { showToast("Invalid AIU Opted SS Link!"); return null; }
     }
 
     const result = generateComment(formData);
     setOutput(result); saveToHistory(result); setActiveTab("output"); 
-    showToast("✅ Comment Generated successfully!");
+    showToast("Comment Generated successfully!");
     return result;
   }, [formData]);
 
@@ -116,7 +116,7 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         const generated = handleGenerate();
-        if (generated) { navigator.clipboard.writeText(generated); showToast("⚡ Generated & Copied to Clipboard!"); }
+        if (generated) { navigator.clipboard.writeText(generated); showToast("Generated & Copied to Clipboard!"); }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -220,17 +220,17 @@ export default function App() {
             <div className="input-group">
               <label>Attribute *</label>
               <div className="segmented-control">
-                <button className={`segment-btn ${isPrice ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "price")}>💰 Price</button>
-                <button className={`segment-btn ${isAvail ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "availability")}>📦 Availability</button>
+                <button className={`segment-btn ${isPrice ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "price")}>Price</button>
+                <button className={`segment-btn ${isAvail ? "active-segment" : ""}`} onClick={() => toggleArrayItem("attribute", "availability")}>Availability</button>
               </div>
             </div>
 
-            {/* ✨ SPLIT USER AGENTS BASED ON SELECTION */}
+            {/* SPLIT USER AGENTS BASED ON SELECTION */}
             {isPrice && (
               <div className="input-group">
                 <label>User Agents (Price) *</label>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                  <button className={`segment-btn ${formData.userAgentsPrice.includes("all") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgentsPrice", "all")} style={{ gridColumn: "span 2", border: "1px solid var(--input-border)", background: formData.userAgentsPrice.includes("all") ? "var(--segment-active-bg)" : "var(--input-bg)" }}>✨ All User Agents</button>
+                  <button className={`segment-btn ${formData.userAgentsPrice.includes("all") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgentsPrice", "all")} style={{ gridColumn: "span 2", border: "1px solid var(--input-border)", background: formData.userAgentsPrice.includes("all") ? "var(--segment-active-bg)" : "var(--input-bg)" }}>All User Agents</button>
                   {AVAILABLE_USER_AGENTS.map((ua) => (
                     <button key={ua} className={`segment-btn ${formData.userAgentsPrice.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgentsPrice", ua)} style={{ border: "1px solid var(--input-border)", background: formData.userAgentsPrice.includes(ua) ? "var(--segment-active-bg)" : "var(--input-bg)" }}>{ua}</button>
                   ))}
@@ -242,7 +242,7 @@ export default function App() {
               <div className="input-group">
                 <label>User Agents (Availability) *</label>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                  <button className={`segment-btn ${formData.userAgentsAvail.includes("all") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgentsAvail", "all")} style={{ gridColumn: "span 2", border: "1px solid var(--input-border)", background: formData.userAgentsAvail.includes("all") ? "var(--segment-active-bg)" : "var(--input-bg)" }}>✨ All User Agents</button>
+                  <button className={`segment-btn ${formData.userAgentsAvail.includes("all") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgentsAvail", "all")} style={{ gridColumn: "span 2", border: "1px solid var(--input-border)", background: formData.userAgentsAvail.includes("all") ? "var(--segment-active-bg)" : "var(--input-bg)" }}>All User Agents</button>
                   {AVAILABLE_USER_AGENTS.map((ua) => (
                     <button key={ua} className={`segment-btn ${formData.userAgentsAvail.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("userAgentsAvail", ua)} style={{ border: "1px solid var(--input-border)", background: formData.userAgentsAvail.includes(ua) ? "var(--segment-active-bg)" : "var(--input-bg)" }}>{ua}</button>
                   ))}
@@ -313,8 +313,8 @@ export default function App() {
                       
                       {(isPrice && isAvail) && (
                         <div className="segmented-control" style={{marginBottom: "6px"}}>
-                          <button className={`segment-btn ${issue.attribute === "price" ? "active-segment" : ""}`} onClick={() => updateArrayItem("orIssues", i, "attribute", "price")}>💰 Price</button>
-                          <button className={`segment-btn ${issue.attribute === "availability" ? "active-segment" : ""}`} onClick={() => updateArrayItem("orIssues", i, "attribute", "availability")}>📦 Availability</button>
+                          <button className={`segment-btn ${issue.attribute === "price" ? "active-segment" : ""}`} onClick={() => updateArrayItem("orIssues", i, "attribute", "price")}>Price</button>
+                          <button className={`segment-btn ${issue.attribute === "availability" ? "active-segment" : ""}`} onClick={() => updateArrayItem("orIssues", i, "attribute", "availability")}>Availability</button>
                         </div>
                       )}
 
@@ -363,8 +363,8 @@ export default function App() {
                       <div className="input-group" style={{ marginBottom: "12px" }}>
                         <label>Local Attribute</label>
                         <div className="segmented-control">
-                          <button className={`segment-btn ${formData.historyAttr.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "price")}>💰 Price</button>
-                          <button className={`segment-btn ${formData.historyAttr.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "availability")}>📦 Availability</button>
+                          <button className={`segment-btn ${formData.historyAttr.includes("price") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "price")}>Price</button>
+                          <button className={`segment-btn ${formData.historyAttr.includes("availability") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyAttr", "availability")}>Availability</button>
                         </div>
                       </div>
                       
@@ -384,7 +384,7 @@ export default function App() {
                         <div className="input-group">
                           <label>History User Agents (Availability)</label>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                            <button className={`segment-btn ${formData.historyUAsAvail.includes("all") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyUAsAvail", "all")} style={{ gridColumn: "span 2", border: "1px solid var(--input-border)", background: formData.historyUAsAvail.includes("all") ? "var(--segment-active-bg)" : "var(--input-bg)" }}>✨ All User Agents</button>
+                            <button className={`segment-btn ${formData.historyUAsAvail.includes("all") ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyUAsAvail", "all")} style={{ gridColumn: "span 2", border: "1px solid var(--input-border)", background: formData.historyUAsAvail.includes("all") ? "var(--segment-active-bg)" : "var(--input-bg)" }}>All User Agents</button>
                             {AVAILABLE_USER_AGENTS.map((ua) => (
                               <button key={ua} className={`segment-btn ${formData.historyUAsAvail.includes(ua) ? "active-segment" : ""}`} onClick={() => toggleArrayItem("historyUAsAvail", ua)} style={{ border: "1px solid var(--input-border)", background: formData.historyUAsAvail.includes(ua) ? "var(--segment-active-bg)" : "var(--input-bg)" }}>{ua}</button>
                             ))}
@@ -410,7 +410,7 @@ export default function App() {
                       <button className={`segment-btn ${formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "active-segment" : ""}`} onClick={() => handleChange("historyCondition", "AVAILABILITY_DISTRUST_THRESHOLD_REACHED")} style={{ border: "1px solid var(--input-border)", background: formData.historyCondition === "AVAILABILITY_DISTRUST_THRESHOLD_REACHED" ? "var(--segment-active-bg)" : "var(--input-bg)", padding: "12px", textAlign: "left" }}>AVAILABILITY_DISTRUST_THRESHOLD_REACHED</button>
                     )}
                   </div>
-                ) : (<div className="empty-state" style={{ padding: "10px", fontSize: "0.85rem", color: "#f59e0b" }}>⚠️ Please select an Attribute above!</div>)}
+                ) : (<div className="empty-state" style={{ padding: "10px", fontSize: "0.85rem", color: "#f59e0b" }}>Please select an Attribute above!</div>)}
               </div>
 
               <div className="input-group"><label>Reason SS Link *</label><input placeholder="https://..." value={formData.historyReasonSS} onChange={(e) => handleChange("historyReasonSS", e.target.value)} /></div>
@@ -474,11 +474,11 @@ export default function App() {
           {activeTab === "output" && (
             <div className="card sticky-output">
               <h2>Generated Document</h2>
-              <div className="hint-text">💡 Power User: Press <b>Ctrl + Enter</b> to Generate & Copy instantly!</div>
+              <div className="hint-text">Press <b>Ctrl + Enter</b> to Generate & Copy instantly!</div>
               <div className="actions">
                 <button className="primary-action" onClick={handleGenerate}>⚙️ Generate</button>
-                <button className="copy-action" onClick={() => { navigator.clipboard.writeText(output); showToast("📋 Copied!"); }} disabled={!output}>📋 Copy</button>
-                <button className="danger-action" onClick={handleReset}>🧹 Next Bug</button>
+                <button className="copy-action" onClick={() => { navigator.clipboard.writeText(output); showToast("Copied!"); }} disabled={!output}>Copy</button>
+                <button className="danger-action" onClick={handleReset}>Next Bug</button>
               </div>
               <div className="output-container">
                 {output ? <pre className="output">{output}</pre> : <div className="empty-state">Comment will appear here...</div>}
@@ -502,8 +502,8 @@ export default function App() {
                       {expandedIndex === index && (
                         <div className="accordion-body">
                           <div className="actions" style={{ marginBottom: "12px", display: "flex", gap: "12px" }}>
-                            <button className="copy-action" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(item); showToast("📋 History Copied!"); }}>📋 Copy Comment</button>
-                            <button className="danger-action" style={{ flex: 0, padding: "12px 20px" }} onClick={() => deleteFromHistory(index)}>🗑️ Delete</button>
+                            <button className="copy-action" style={{ flex: 1 }} onClick={() => { navigator.clipboard.writeText(item); showToast("History Copied!"); }}>Copy Comment</button>
+                            <button className="danger-action" style={{ flex: 0, padding: "12px 20px" }} onClick={() => deleteFromHistory(index)}>Delete</button>
                           </div>
                           <div className="output-container" style={{ maxHeight: "300px", overflowY: "auto" }}><pre className="output">{item}</pre></div>
                         </div>
