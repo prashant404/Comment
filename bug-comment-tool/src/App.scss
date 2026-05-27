@@ -1,12 +1,6 @@
-// ==========================================
-// 📦 IMPORTS
-// ==========================================
 @use 'sass:math';
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Lato:wght@300;400;700&display=swap');
 
-// ==========================================
-// 🗺️ SPACING & RADIUS SCALE (single source of truth)
-// ==========================================
 $space-xs:   4px;
 $space-sm:   8px;
 $space-md:   16px;
@@ -20,9 +14,6 @@ $radius-lg:   16px;
 $radius-xl:   24px;
 $radius-pill: 999px;
 
-// ==========================================
-// 🔤 TYPOGRAPHY MIXINS
-// ==========================================
 @mixin font-display($size: 1.1rem, $weight: 700) {
   font-family: 'Syne', sans-serif;
   font-size: $size;
@@ -51,9 +42,6 @@ $radius-pill: 999px;
   letter-spacing: 0.12em;
 }
 
-// ==========================================
-// 🎛️ COMPONENT MIXINS
-// ==========================================
 @mixin glass($blur: 20px, $border-opacity: 0.15) {
   backdrop-filter: blur($blur);
   -webkit-backdrop-filter: blur($blur);
@@ -89,9 +77,7 @@ $radius-pill: 999px;
   }
 }
 
-// ==========================================
-// 🎨 DARK THEME (default)
-// ==========================================
+
 :root {
   --bg-main:            #0c1525;
   --bg-gradient:
@@ -128,18 +114,13 @@ $radius-pill: 999px;
 
   --danger-color:       #fb7185;
   --danger-bg:          rgba(244, 63, 94, 0.18);
-
-  // Shadows
   --shadow-card:        0 8px 32px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255,255,255,0.05) inset;
   --shadow-elevated:    0 20px 60px rgba(0, 0, 0, 0.4);
 
-  // Semantic indicator
   --mode: 'dark';
 }
 
-// ==========================================
-// 🌤️ LIGHT THEME
-// ==========================================
+//  LIGHT THEME
 [data-theme="light"] {
   --bg-main:            #f0f4fc;
   --bg-gradient:
@@ -177,14 +158,10 @@ $radius-pill: 999px;
   --danger-color:       #e11d48;
   --danger-bg:          rgba(225, 29, 72, 0.09);
 
-  // More visible card shadow in light mode
   --shadow-card:        0 2px 8px rgba(15, 23, 42, 0.07), 0 8px 24px rgba(15, 23, 42, 0.05);
   --shadow-elevated:    0 12px 40px rgba(15, 23, 42, 0.14);
 }
 
-// ==========================================
-// ♿ REDUCED MOTION
-// ==========================================
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -195,9 +172,6 @@ $radius-pill: 999px;
   }
 }
 
-// ==========================================
-// 🛠️ RESET & BASE
-// ==========================================
 *,
 *::before,
 *::after {
@@ -229,9 +203,6 @@ body {
   }
 }
 
-// ==========================================
-// 📐 LAYOUT SHELL
-// ==========================================
 .app-wrapper {
   display: flex;
   flex-direction: column;
@@ -244,9 +215,6 @@ body {
   }
 }
 
-// ==========================================
-// 🔝 HEADER
-// ==========================================
 .top-bar {
   padding: $space-md $space-xl;
   background-color: var(--header-bg);
@@ -277,8 +245,6 @@ body {
     gap: $space-sm;
   }
 }
-
-// Alias for existing markup
 .top-bar h1 {
   @extend .top-bar__title;
 }
@@ -300,9 +266,6 @@ body {
   }
 }
 
-// ==========================================
-// 🧩 MAIN LAYOUT
-// ==========================================
 .main-layout {
   display: flex;
   flex: 1;
@@ -346,9 +309,6 @@ body {
   }
 }
 
-// ==========================================
-// 📜 CUSTOM SCROLLBARS
-// ==========================================
 ::-webkit-scrollbar         { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track   { background: transparent; }
 ::-webkit-scrollbar-thumb   {
@@ -358,9 +318,6 @@ body {
   &:hover { background: var(--text-muted); }
 }
 
-// ==========================================
-// 🃏 CARDS
-// ==========================================
 .card {
   @include card-base;
   padding: $space-lg;
@@ -417,9 +374,6 @@ body {
 .border-blue     { @extend .card--accent-top; }
 .sticky-output   { @extend .card--output; }
 
-// ==========================================
-// 📝 TYPOGRAPHY (scoped, not global)
-// ==========================================
 .card,
 .top-bar,
 .accordion-item,
@@ -437,9 +391,6 @@ body {
   }
 }
 
-// ==========================================
-// 🔤 FORM ELEMENTS
-// ==========================================
 .input-group {
   display: flex;
   flex-direction: column;
@@ -501,9 +452,6 @@ textarea {
   min-height: 100px;
 }
 
-// ==========================================
-// 🎚️ SEGMENTED CONTROLS
-// ==========================================
 .segmented-control {
   display: flex;
   background-color: var(--segment-bg);
@@ -537,9 +485,6 @@ textarea {
   }
 }
 
-// ==========================================
-// 🔘 BUTTONS
-// ==========================================
 .btn {
   @include button-reset;
   padding: 11px $space-md;
@@ -661,9 +606,6 @@ textarea {
   .danger-action  { flex: 0 0 auto; min-width: 72px; }
 }
 
-// ==========================================
-// 📦 SAMPLE BLOCK
-// ==========================================
 .sample-block {
   background-color: var(--segment-bg);
   padding: $space-md;
@@ -686,9 +628,6 @@ textarea {
   margin: $space-xs 0;
 }
 
-// ==========================================
-// 🖥️ OUTPUT AREA
-// ==========================================
 .sticky-output {
   flex: 1;
   display: flex;
@@ -728,9 +667,6 @@ textarea {
   flex: 1;
 }
 
-// ==========================================
-// 🗂️ TABS
-// ==========================================
 .tabs-container {
   display: flex;
   gap: $space-sm;
@@ -760,9 +696,6 @@ textarea {
   }
 }
 
-// ==========================================
-// 📋 ACCORDION
-// ==========================================
 .history-card { overflow: hidden; }
 
 .accordion-list {
@@ -822,9 +755,6 @@ textarea {
   padding: 0 $space-md $space-md;
 }
 
-// ==========================================
-// 📭 EMPTY STATE
-// ==========================================
 .empty-state {
   text-align: center;
   padding: $space-2xl $space-lg;
@@ -841,9 +771,6 @@ textarea {
   }
 }
 
-// ==========================================
-// 💬 HINT TEXT
-// ==========================================
 .hint-text {
   @include font-body(0.78rem);
   color: var(--text-faint);
@@ -856,9 +783,6 @@ textarea {
   }
 }
 
-// ==========================================
-// 🔔 TOAST NOTIFICATION
-// ==========================================
 .toast {
   position: fixed;
   bottom: $space-xl;
@@ -892,9 +816,6 @@ textarea {
   to   { transform: translateY(0)   scale(1);    opacity: 1; }
 }
 
-// ==========================================
-// 📱 RESPONSIVE BREAKPOINTS
-// ==========================================
 @media (max-width: 1100px) {
   body { overflow: auto; }
 
