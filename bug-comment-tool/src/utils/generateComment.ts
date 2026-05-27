@@ -10,7 +10,6 @@ const formatURL = (url?: string): string => {
   return trimmed;
 };
 
-// ✨ VERCEL FAILSAFE: FORCE ANY
 export const generateComment = (rawData: any): string => {
   
   const data: any = {
@@ -35,7 +34,7 @@ export const generateComment = (rawData: any): string => {
   const isAIUOpted = data.isAIUOpted;
   const isMd = outputFormat === "markdown";
 
-  // 🛡️ DYNAMIC SCENARIO ENGINE
+  // DYNAMIC SCENARIO 
   const getScenarioDetails = (scenario: 'overrule' | 'history' | 'global') => {
     let attrs: string[] = Array.isArray(data.attribute) ? data.attribute : [data.attribute].filter(Boolean);
     let uasPrice: string[] = Array.isArray(data.userAgentsPrice) ? data.userAgentsPrice : [];
@@ -86,7 +85,6 @@ export const generateComment = (rawData: any): string => {
     return parts.join("\n"); 
   };
 
-  // ✨ DYNAMIC INTRO SENTENCE GENERATOR (Non-repetitive)
   let introCombined = "";
   if (ov.attrs.includes("price") && ov.attrs.includes("availability")) {
     if (ov.sameUAs) {
@@ -100,7 +98,7 @@ export const generateComment = (rawData: any): string => {
     introCombined = `the script for availability is distrusted for the ${ov.availUA.uaStr} ${ov.availUA.uaPlural} due to mismatches which need to be overruled.`;
   }
 
-  // ✨ DYNAMIC HISTORY SENTENCE GENERATOR
+  // DYNAMIC HISTORY SENTENCE
   let historySentence = "";
   if (hist.attrs.includes("price") && hist.attrs.includes("availability")) {
     if (hist.sameUAs) {
@@ -114,7 +112,7 @@ export const generateComment = (rawData: any): string => {
     historySentence = `there is a high percentage of history mismatches for availability for the ${hist.availUA.uaStr} ${hist.availUA.uaPlural} where availability present in the feed differs from what is present on the landing page leading to the "${data.historyCondition}" condition.`;
   }
 
-  // ✨ DYNAMIC PLEASE OVERRULE SENTENCE (OR)
+  // DYNAMIC OVERRULE SENTENCE
   let pleaseOverrule = "";
   if (ov.attrs.includes("price") && ov.attrs.includes("availability")) {
     if (ov.sameUAs) {
@@ -130,9 +128,8 @@ export const generateComment = (rawData: any): string => {
 
   let commentBody = "";
 
-  // -------------------------------------------------------------
+  
   // SCENARIO D: WAITING FOR COVERAGE (Standalone)
-  // -------------------------------------------------------------
   if (activeScenarios.includes("coverage")) {
     let coverageStatement = data.coverageImproved === "improved" 
       ? "Moreover, the coverage has improved to some extent but not reached the threshold.\n" 
@@ -141,9 +138,8 @@ export const generateComment = (rawData: any): string => {
     commentBody = `The overruling has been carried out and script is now trusted for ${glob.attrStr}.\n${link('Gearloose', data.gearloose)}\n\n${coverageStatement}Current coverage: ${isMd ? `[SS](${data.coverageSS})` : data.coverageSS}\n\nI will update once the coverage reaches the threshold.\n\n`;
   }
 
-  // -------------------------------------------------------------
+
   // CASE 4: COMBINED OVERRULE (DT ONLY) + HISTORY MISMATCH
-  // -------------------------------------------------------------
   else if (activeScenarios.includes("overrule") && activeScenarios.includes("history")) {
     let historySampleText = "";
     data.historySamples.forEach((s: any) => {
@@ -169,7 +165,7 @@ export const generateComment = (rawData: any): string => {
     commentBody += `\nI will update the status accordingly.\n\n`;
   } 
   
-  // -------------------------------------------------------------
+
   // CASE 1: OVERRULE ONLY (DT or OR)
   // -------------------------------------------------------------
   else if (activeScenarios.includes("overrule")) {
@@ -205,9 +201,7 @@ export const generateComment = (rawData: any): string => {
     }
   }
 
-  // -------------------------------------------------------------
   // CASE 3: HISTORY MISMATCH ONLY
-  // -------------------------------------------------------------
   else if (activeScenarios.includes("history")) {
     let historySampleText = "";
     data.historySamples.forEach((s: any) => {
@@ -220,9 +214,7 @@ export const generateComment = (rawData: any): string => {
     commentBody += `After analyzing the merchant, it has been observed that ${historySentence}${aiuText}\n\n${link('Gearloose', data.gearloose)}\n${link('Reason', data.historyReasonSS)}\n\nSample:\n${historySampleText}${aiuSS}\nI will update the status accordingly.\n\n`;
   }
 
-  // -------------------------------------------------------------
   // INDEPENDENT SCENARIO: CL CREATION
-  // -------------------------------------------------------------
   if (activeScenarios.includes("cl")) {
     let clSampleText = "";
     data.clSamples.forEach((s: any) => {
