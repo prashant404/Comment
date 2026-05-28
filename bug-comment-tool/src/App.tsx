@@ -336,13 +336,11 @@ export default function App() {
   const isHistPrice = activeHistoryAttrs.includes("price");
   const isHistAvail = activeHistoryAttrs.includes("availability");
 
-  // ✨ THE HOLLYWOOD HACKER BOOT SCREEN:
   if (isBooting) {
     return (
       <div style={{ height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", background: "var(--bg-main)", color: "var(--accent-primary)", fontFamily: "monospace", zIndex: 9999 }}>
         <div style={{ fontSize: "2rem", marginBottom: "20px", animation: "pulse 1.5s infinite" }}></div>
         <h2>INITIALIZING....</h2>
-        <p style={{ color: "var(--text-muted)", marginTop: "10px", fontSize: "0.85rem" }}>Loading Offline Sandbox Environment...</p>
         <p style={{ color: "var(--success-bg)", marginTop: "4px", fontSize: "0.75rem" }}>[ OK ] UI Components Rendered</p>
         <p style={{ color: "var(--success-bg)", marginTop: "4px", fontSize: "0.75rem" }}>[ OK ] Local Cache Decrypted</p>
       </div>
